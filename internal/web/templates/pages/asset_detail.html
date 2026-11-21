@@ -79,7 +79,20 @@
       </dl>
     </div></section>
     {{end}}
-    {{block "overview_extra" .}}{{end}}
+    {{if and $a.SupportsRdap $a.RdapEnabled}}
+    <section class="card"><div class="card-body">
+      <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <h2 class="text-base font-semibold">RDAP sync</h2>
+        {{if not $a.CancelledAt}}<form method="post" action="/assets/{{$a.ID}}/rdap">{{template "csrf" $.CSRF}}<button type="submit" class="btn-secondary btn-sm">{{icon "refresh"}}Check now</button></form>{{end}}
+      </div>
+      <dl class="divide-y divide-slate-100 dark:divide-slate-800">
+        <div class="grid grid-cols-3 gap-3 py-2.5"><dt class="text-sm text-slate-500 dark:text-slate-400">Last result</dt><dd class="col-span-2 text-sm">{{template "rdap_badge" $a.RdapResult}}</dd></div>
+        {{template "dl_row" (dict "Label" "Last checked" "Value" (dateTimePtr $a.RdapCheckedAt $d.Location))}}
+        {{with $a.RdapError}}<div class="grid grid-cols-3 gap-3 py-2.5"><dt class="text-sm text-slate-500 dark:text-slate-400">Message</dt><dd class="col-span-2 break-words text-sm text-red-700 dark:text-red-400">{{.}}</dd></div>{{end}}
+      </dl>
+      <p class="help mt-2">Runs daily at 03:00. A different registry date replaces the expiration date automatically. <a href="/rdap" class="underline">RDAP log</a></p>
+    </div></section>
+    {{end}}
   </div>
 </div>
 {{end}}

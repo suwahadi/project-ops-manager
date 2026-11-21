@@ -61,6 +61,8 @@ func registerPrivate(mux *http.ServeMux, app *handlers.App) {
 	mux.HandleFunc("POST /assets/{id}/delete", app.AssetDelete)
 	mux.HandleFunc("POST /assets/{id}/notes", app.AssetNotes)
 	mux.HandleFunc("POST /assets/{id}/renew", app.AssetRenew)
+	mux.HandleFunc("POST /assets/{id}/rdap", app.RDAPCheck)
+	mux.HandleFunc("GET /rdap", app.RDAPLog)
 	mux.HandleFunc("POST /assets/{id}/documents", app.DocumentUpload)
 	mux.HandleFunc("GET /documents/{id}", app.DocumentServe)
 	mux.HandleFunc("POST /documents/{id}/delete", app.DocumentDelete)

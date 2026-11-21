@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/suwahadi/project-ops-manager/internal/rdap"
 )
 
 type banner struct {
@@ -26,6 +28,18 @@ func (a *App) dashboardBanners(r *http.Request) ([]banner, error) {
 		return nil, err
 	case last.Status == "failed":
 		out = append(out, banner{Message: "The last reminder delivery failed.", Href: "/assets/" + last.AssetID + "?tab=reminders", Link: "View delivery log"})
+	}
+	run, err := a.Queries.LatestJobRun(r.Context(), rdap.JobName)
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+	case err != nil:
+		return nil, err
+	case run.Status == "failed":
+		msg := "The last RDAP sync run failed."
+		if run.Error != nil {
+			msg = "The last RDAP sync run failed: " + *run.Error + "."
+		}
+		out = append(out, banner{Message: msg, Href: "/rdap", Link: "View RDAP log"})
 	}
 	return out, nil
 }

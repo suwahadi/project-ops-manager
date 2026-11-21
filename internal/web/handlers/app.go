@@ -21,6 +21,7 @@ import (
 	"github.com/suwahadi/project-ops-manager/internal/finance"
 	"github.com/suwahadi/project-ops-manager/internal/markdown"
 	"github.com/suwahadi/project-ops-manager/internal/provider"
+	"github.com/suwahadi/project-ops-manager/internal/rdap"
 	"github.com/suwahadi/project-ops-manager/internal/reminder"
 	"github.com/suwahadi/project-ops-manager/internal/settings"
 	"github.com/suwahadi/project-ops-manager/internal/web/middleware"
@@ -44,6 +45,7 @@ type Deps struct {
 	Queries     *sqlc.Queries
 	Documents   *document.Store
 	Finance     *finance.Service
+	RDAP        *rdap.Service
 	Telegram    reminder.TelegramSender
 	Email       reminder.EmailSender
 	Now         func() time.Time

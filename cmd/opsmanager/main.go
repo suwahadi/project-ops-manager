@@ -29,6 +29,7 @@ import (
 	"github.com/suwahadi/project-ops-manager/internal/notify/email"
 	"github.com/suwahadi/project-ops-manager/internal/notify/telegram"
 	"github.com/suwahadi/project-ops-manager/internal/provider"
+	"github.com/suwahadi/project-ops-manager/internal/rdap"
 	"github.com/suwahadi/project-ops-manager/internal/reminder"
 	"github.com/suwahadi/project-ops-manager/internal/settings"
 	"github.com/suwahadi/project-ops-manager/internal/web"
@@ -92,6 +93,14 @@ func serve(ctx context.Context, logger *slog.Logger) error {
 	tgSender := telegram.NewSender()
 	emailSender := email.NewSender()
 	dispatcher := reminder.NewDispatcher(pool, store, tgSender, emailSender, cfg.BaseURL, logger, now)
+	rdapService := rdap.NewService(pool, rdap.NewClient(), logger, now)
+	settingsLocation := func() *time.Location {
+		all, err := store.Load(context.Background())
+		if err != nil {
+			return time.UTC
+		}
+		return all.General.Location()
+	}
 	renderer, err := templates.New(nil)
 	if err != nil {
 		return err
@@ -111,6 +120,7 @@ func serve(ctx context.Context, logger *slog.Logger) error {
 		Queries:     sqlc.New(pool),
 		Documents:   document.NewStore(cfg.UploadsDir, pool),
 		Finance:     finance.NewService(pool),
+		RDAP:        rdapService,
 		Telegram:    tgSender,
 		Email:       emailSender,
 		Now:         now,
@@ -137,9 +147,20 @@ func serve(ctx context.Context, logger *slog.Logger) error {
 			},
 		},
 		jobs.Job{
+			Name: "rdap_sync", LockKey: db.LockRDAP, Schedule: jobs.DailyAt{Hour: 3, Minute: 0, Location: settingsLocation},
+			Run: func(ctx context.Context) error {
+				sum, err := rdapService.RunAll(ctx)
+				logger.Info("rdap sync finished", "checked", sum.Checked, "updated", sum.Updated, "unchanged", sum.Unchanged, "unsupported", sum.Unsupported, "errors", sum.Errors)
+				return err
+			},
+		},
+		jobs.Job{
 			Name: "session_cleanup", LockKey: db.LockCleanup, Schedule: jobs.Every(24 * time.Hour), RunAtStart: true,
 			Run: func(ctx context.Context) error {
 				s, a, err := authSvc.Cleanup(ctx)
+				if err == nil {
+					err = sqlc.New(pool).DeleteJobRunsBefore(ctx, time.Now().AddDate(0, 0, -90))
+				}
 				if err == nil {
 					logger.Info("session cleanup finished", "sessions_deleted", s, "login_attempts_deleted", a)
 				}

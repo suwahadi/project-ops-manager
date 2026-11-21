@@ -16,7 +16,13 @@ func baseFuncs() template.FuncMap {
 		"datePtr":  formatDatePtr,
 		"dateTime": FormatDateTime,
 		"isoDate":  isoDate,
-		"money":    formatMoney,
+		"dateTimePtr": func(t *time.Time, loc *time.Location) string {
+			if t == nil {
+				return "—"
+			}
+			return FormatDateTime(*t, loc)
+		},
+		"money": formatMoney,
 		"nullMoney": func(n money.NullAmount, cur string) string {
 			if !n.Valid {
 				return "—"
