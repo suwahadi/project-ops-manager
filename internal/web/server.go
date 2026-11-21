@@ -17,6 +17,7 @@ func NewHandler(app *handlers.App) http.Handler {
 	public.HandleFunc("POST /login", app.Login)
 	public.HandleFunc("GET /healthz", app.Healthz)
 	public.HandleFunc("GET /robots.txt", app.Robots)
+	public.HandleFunc("GET /favicon.ico", app.Favicon)
 	public.Handle("GET /static/", staticHandler())
 
 	private := http.NewServeMux()

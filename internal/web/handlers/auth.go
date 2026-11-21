@@ -21,8 +21,27 @@ func (a *App) LoginForm(w http.ResponseWriter, r *http.Request) {
 	a.renderLogin(w, r, http.StatusOK, loginData{})
 }
 
+func validLoginToken(v string) bool {
+	if len(v) != 43 {
+		return false
+	}
+	for _, c := range v {
+		if !(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '-' || c == '_') {
+			return false
+		}
+	}
+	return true
+}
+
+func (a *App) loginToken(r *http.Request) (string, error) {
+	if c, err := r.Cookie(middleware.LoginCSRFCookie); err == nil && validLoginToken(c.Value) {
+		return c.Value, nil
+	}
+	return auth.RandomToken()
+}
+
 func (a *App) renderLogin(w http.ResponseWriter, r *http.Request, status int, data loginData) {
-	token, err := auth.RandomToken()
+	token, err := a.loginToken(r)
 	if err != nil {
 		a.serverError(w, r, err)
 		return
@@ -70,6 +89,10 @@ func (a *App) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, &http.Cookie{Name: middleware.SessionCookie, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: a.Secure, SameSite: http.SameSiteLaxMode})
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+func (a *App) Favicon(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "/static/img/favicon.svg", http.StatusMovedPermanently)
 }
 
 func (a *App) Healthz(w http.ResponseWriter, r *http.Request) {
