@@ -178,7 +178,10 @@
     var selected = this.select.selectedIndex;
     var idx = this.visible.indexOf(selected);
     this.setActive(idx >= 0 ? idx : 0);
-    this.search.focus();
+    this.search.focus({ preventScroll: true });
+    if (this.panel.scrollIntoView) {
+      this.panel.scrollIntoView({ block: "nearest" });
+    }
   };
 
   Combobox.prototype.close = function (focusTrigger) {

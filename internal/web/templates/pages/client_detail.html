@@ -74,7 +74,6 @@
   <form method="post" action="/clients/{{$c.ID}}/assets" class="card-body space-y-4">
     {{template "csrf" .CSRF}}
     <h2 id="link-assets-title" class="text-lg font-semibold">Link existing assets</h2>
-    <p class="text-sm text-slate-600 dark:text-slate-400">Chosen assets move to {{$c.Name}}, including assets that belong to another client.</p>
     <div>
       <label for="link-asset-ids" class="sr-only">Assets</label>
       <select id="link-asset-ids" name="asset_ids" multiple data-combobox="inline" class="input h-auto py-2" size="8">
@@ -94,7 +93,6 @@
   <form method="post" action="/clients/{{$c.ID}}/projects" class="card-body space-y-4">
     {{template "csrf" .CSRF}}
     <h2 id="link-projects-title" class="text-lg font-semibold">Link existing projects</h2>
-    <p class="text-sm text-slate-600 dark:text-slate-400">Chosen projects move to {{$c.Name}}, including projects that belong to another client.</p>
     <div>
       <label for="link-project-ids" class="sr-only">Projects</label>
       <select id="link-project-ids" name="project_ids" multiple data-combobox="inline" class="input h-auto py-2" size="8">

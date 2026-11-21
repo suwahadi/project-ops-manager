@@ -8,10 +8,12 @@ import (
 	"time"
 
 	"github.com/suwahadi/project-ops-manager/internal/money"
+	"github.com/suwahadi/project-ops-manager/internal/web/static"
 )
 
 func baseFuncs() template.FuncMap {
 	return template.FuncMap{
+		"static":   static.URL,
 		"date":     FormatDate,
 		"datePtr":  formatDatePtr,
 		"dateTime": FormatDateTime,
