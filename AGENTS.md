@@ -80,6 +80,10 @@ The owner's answers to questions the PRD left open. They are as binding as the P
 | D13 | Commit author | Commits are authored as `suwahadi <suwahadi@gmail.com>` (repository-local git config). |
 | D14 | Extra packages | `internal/money` (decimal amounts as integer cents, pgx numeric scanning, IDR/USD formatting), `internal/settings` (settings table, encrypted secrets, key check and key rotation) and `internal/db/dbtest` (integration-test databases) were added to the PRD layout. Templates and static files embed themselves from `internal/web/templates` and `internal/web/static` to avoid import cycles. |
 | D15 | Key check | On start the app decrypts a stored key-check secret. A wrong `OPS_ENCRYPTION_KEY` makes it refuse to start instead of failing later. `opsmanager rotate-key` re-encrypts every secret and credential password with `OPS_ENCRYPTION_KEY_NEW` under `key_version + 1`. |
+| D17 | Client totals (CLI-2) | "Per year" means annualised recurring totals of non-cancelled assets: each price × 12 / renewal period months, per currency. |
+| D18 | Internal selling price | An Internal asset with a selling price fails validation with an inline error. It is never silently cleared. |
+| D19 | Markdown package | `internal/markdown` wraps goldmark (GFM) and bluemonday. Notes and project briefs share it. |
+| D20 | Custom field keys | A field key is set on creation (derived from the label if empty) and cannot change afterwards. Label, type, options, required flag and order stay editable. |
 | D16 | Chromium network | The Compose network named `internal` publishes no ports but is not a Docker `internal: true` network, because Chromium must reach public websites to take screenshots. |
 
 When a new ambiguity appears, record the decision here in the same commit that implements it.

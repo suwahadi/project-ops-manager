@@ -1,0 +1,36 @@
+{{define "content"}}
+<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+  <p class="text-sm text-slate-600 dark:text-slate-400">Owners of client assets and projects.</p>
+  <a href="/clients/new" class="btn-primary">{{icon "plus"}}Add client</a>
+</div>
+{{if not .Data}}
+  {{template "empty_state" (dict "Message" "No clients yet." "Href" "/clients/new" "Action" "Add client")}}
+{{else}}
+<div class="card hidden overflow-x-auto md:block">
+  <table class="table">
+    <thead><tr><th>Name</th><th>Contact</th><th>Email</th><th>Phone</th><th class="text-right">Assets</th><th class="text-right">Projects</th></tr></thead>
+    <tbody>
+      {{range .Data}}
+      <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+        <td class="font-medium"><a href="/clients/{{.ID}}" class="hover:underline">{{.Name}}</a></td>
+        <td>{{or (deref .ContactPerson) "—"}}</td>
+        <td>{{or (deref .Email) "—"}}</td>
+        <td>{{or (deref .Phone) "—"}}</td>
+        <td class="text-right">{{.AssetCount}}</td>
+        <td class="text-right">{{.ProjectCount}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+<ul class="space-y-3 md:hidden">
+  {{range .Data}}
+  <li class="card"><a href="/clients/{{.ID}}" class="card-body block space-y-1">
+    <div class="font-medium">{{.Name}}</div>
+    {{with .ContactPerson}}<div class="text-sm text-slate-600 dark:text-slate-400">{{.}}</div>{{end}}
+    <div class="text-sm text-slate-500 dark:text-slate-400">{{.AssetCount}} {{plural (int .AssetCount) "asset" "assets"}} · {{.ProjectCount}} {{plural (int .ProjectCount) "project" "projects"}}</div>
+  </a></li>
+  {{end}}
+</ul>
+{{end}}
+{{end}}

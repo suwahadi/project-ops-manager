@@ -1,0 +1,21 @@
+{{define "content"}}
+{{$d := .Data}}{{$r := $d.Results}}
+<form method="get" action="/search" class="mb-6 max-w-xl sm:hidden" role="search">
+  <label for="q-mobile" class="sr-only">Search</label>
+  <input id="q-mobile" type="search" name="q" value="{{$d.Query}}" placeholder="Search assets, clients, projects" class="input">
+</form>
+{{if not $d.Query}}
+  <p class="text-sm text-slate-600 dark:text-slate-400">Type a name to search assets, clients and projects.</p>
+{{else if $d.Empty}}
+  <div class="card"><div class="card-body py-12 text-center text-sm text-slate-600 dark:text-slate-400">Nothing matches “{{$d.Query}}”. <a href="/assets/new" class="text-indigo-700 underline dark:text-indigo-300">Add asset</a></div></div>
+{{else}}
+<div class="grid items-start gap-6 lg:grid-cols-3">
+  <section><h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Assets</h2>
+    <ul class="card divide-y divide-slate-100 dark:divide-slate-800">{{range $r.Assets}}<li><a href="/assets/{{.ID}}" class="flex items-center justify-between gap-2 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50"><span>{{.Name}}</span>{{template "type_badge" (dict "Name" .TypeName "Icon" .TypeIcon)}}</a></li>{{else}}<li class="px-4 py-3 text-sm text-slate-500">No assets.</li>{{end}}</ul></section>
+  <section><h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Clients</h2>
+    <ul class="card divide-y divide-slate-100 dark:divide-slate-800">{{range $r.Clients}}<li><a href="/clients/{{.ID}}" class="block px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50">{{.Name}}</a></li>{{else}}<li class="px-4 py-3 text-sm text-slate-500">No clients.</li>{{end}}</ul></section>
+  <section><h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Projects</h2>
+    <ul class="card divide-y divide-slate-100 dark:divide-slate-800">{{range $r.Projects}}<li><a href="/projects/{{.ID}}" class="block px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50">{{.Name}}</a></li>{{else}}<li class="px-4 py-3 text-sm text-slate-500">No projects.</li>{{end}}</ul></section>
+</div>
+{{end}}
+{{end}}

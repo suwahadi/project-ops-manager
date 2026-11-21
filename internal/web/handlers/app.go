@@ -11,7 +11,13 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/suwahadi/project-ops-manager/internal/asset"
+	"github.com/suwahadi/project-ops-manager/internal/assettype"
 	"github.com/suwahadi/project-ops-manager/internal/auth"
+	"github.com/suwahadi/project-ops-manager/internal/client"
+	"github.com/suwahadi/project-ops-manager/internal/credential"
+	"github.com/suwahadi/project-ops-manager/internal/markdown"
+	"github.com/suwahadi/project-ops-manager/internal/provider"
 	"github.com/suwahadi/project-ops-manager/internal/settings"
 	"github.com/suwahadi/project-ops-manager/internal/web/middleware"
 	"github.com/suwahadi/project-ops-manager/internal/web/templates"
@@ -20,14 +26,20 @@ import (
 const flashCookie = "ops_flash"
 
 type Deps struct {
-	Logger   *slog.Logger
-	Pool     *pgxpool.Pool
-	Render   *templates.Renderer
-	Auth     *auth.Service
-	Settings *settings.Store
-	Now      func() time.Time
-	BaseURL  string
-	Secure   bool
+	Logger      *slog.Logger
+	Pool        *pgxpool.Pool
+	Render      *templates.Renderer
+	Auth        *auth.Service
+	Settings    *settings.Store
+	Assets      *asset.Service
+	AssetTypes  *assettype.Service
+	Clients     *client.Service
+	Providers   *provider.Service
+	Credentials *credential.Service
+	Markdown    *markdown.Renderer
+	Now         func() time.Time
+	BaseURL     string
+	Secure      bool
 }
 
 type App struct {
@@ -179,3 +191,16 @@ func (f FieldErrors) Add(field, msg string) {
 }
 
 func (f FieldErrors) Any() bool { return len(f) > 0 }
+
+func (a *App) location(r *http.Request) *time.Location {
+	all, err := a.Settings.Load(r.Context())
+	if err != nil {
+		a.Logger.Error("load settings", "error", err)
+		return time.UTC
+	}
+	return all.General.Location()
+}
+
+func (a *App) today(r *http.Request) time.Time {
+	return asset.Today(a.Now(), a.location(r))
+}

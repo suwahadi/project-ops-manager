@@ -14,10 +14,16 @@ import (
 
 	_ "time/tzdata"
 
+	"github.com/suwahadi/project-ops-manager/internal/asset"
+	"github.com/suwahadi/project-ops-manager/internal/assettype"
 	"github.com/suwahadi/project-ops-manager/internal/auth"
+	"github.com/suwahadi/project-ops-manager/internal/client"
 	"github.com/suwahadi/project-ops-manager/internal/config"
+	"github.com/suwahadi/project-ops-manager/internal/credential"
 	"github.com/suwahadi/project-ops-manager/internal/db"
 	"github.com/suwahadi/project-ops-manager/internal/jobs"
+	"github.com/suwahadi/project-ops-manager/internal/markdown"
+	"github.com/suwahadi/project-ops-manager/internal/provider"
 	"github.com/suwahadi/project-ops-manager/internal/settings"
 	"github.com/suwahadi/project-ops-manager/internal/web"
 	"github.com/suwahadi/project-ops-manager/internal/web/handlers"
@@ -82,14 +88,20 @@ func serve(ctx context.Context, logger *slog.Logger) error {
 		return err
 	}
 	app := handlers.New(handlers.Deps{
-		Logger:   logger,
-		Pool:     pool,
-		Render:   renderer,
-		Auth:     authSvc,
-		Settings: store,
-		Now:      now,
-		BaseURL:  cfg.BaseURL,
-		Secure:   strings.HasPrefix(cfg.BaseURL, "https://"),
+		Logger:      logger,
+		Pool:        pool,
+		Render:      renderer,
+		Auth:        authSvc,
+		Settings:    store,
+		Assets:      asset.NewService(pool, cfg.UploadsDir),
+		AssetTypes:  assettype.NewService(pool),
+		Clients:     client.NewService(pool),
+		Providers:   provider.NewService(pool),
+		Credentials: credential.NewService(pool, box),
+		Markdown:    markdown.New(),
+		Now:         now,
+		BaseURL:     cfg.BaseURL,
+		Secure:      strings.HasPrefix(cfg.BaseURL, "https://"),
 	})
 
 	runner := jobs.NewRunner(pool, logger,

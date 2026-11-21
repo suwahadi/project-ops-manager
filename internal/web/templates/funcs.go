@@ -57,6 +57,29 @@ func baseFuncs() template.FuncMap {
 			return many
 		},
 		"add": func(a, b int) int { return a + b },
+		"int": func(v any) int {
+			switch n := v.(type) {
+			case int:
+				return n
+			case int32:
+				return int(n)
+			case int64:
+				return int(n)
+			}
+			return 0
+		},
+		"yesNo": func(b bool) string {
+			if b {
+				return "Yes"
+			}
+			return "No"
+		},
+		"margin": func(cost money.Amount, selling money.NullAmount, cur string) string {
+			if !selling.Valid {
+				return "—"
+			}
+			return (selling.Amount - cost).Format(money.Currency(cur))
+		},
 		"bytes": func(n int64) string {
 			switch {
 			case n >= 1<<20:

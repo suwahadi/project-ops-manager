@@ -1,0 +1,152 @@
+{{define "content"}}
+{{$d := .Data}}{{$f := $d.Form}}{{$e := $d.Errors}}
+<form method="post" action="{{if $d.IsEdit}}/assets/{{$d.ID}}{{else}}/assets{{end}}" class="space-y-6" novalidate>
+  {{template "csrf" .CSRF}}
+  {{if $e}}<div class="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200" role="alert">Please fix the highlighted fields.</div>{{end}}
+  <section class="card"><div class="card-body grid gap-4 md:grid-cols-2">
+    <h2 class="text-base font-semibold md:col-span-2">Basics</h2>
+    <div class="md:col-span-2">
+      <label for="name" class="label">Name</label>
+      <input id="name" name="name" required class="input{{if $e.name}} input-error{{end}}" value="{{$f.Name}}" placeholder="example.com or Production VPS" autofocus>
+      {{template "field_error" $e.name}}
+    </div>
+    <div>
+      <label for="type_id" class="label">Asset type</label>
+      {{if $d.TypeLocked}}
+        <input type="hidden" name="type_id" value="{{$f.TypeID}}">
+        <select id="type_id" class="input" disabled>{{range $d.Types}}{{if eq .ID $f.TypeID}}<option>{{.Name}}</option>{{end}}{{end}}</select>
+        <p class="help">The type cannot change while custom field values exist.</p>
+      {{else}}
+        <select id="type_id" name="type_id" class="input{{if $e.type_id}} input-error{{end}}" hx-get="/assets/fields" hx-target="#custom-fields" hx-swap="outerHTML" hx-trigger="change" hx-include="this">
+          {{range $d.Types}}<option value="{{.ID}}"{{if eq .ID $f.TypeID}} selected{{end}}>{{.Name}}</option>{{end}}
+        </select>
+      {{end}}
+      {{template "field_error" $e.type_id}}
+    </div>
+    <div>
+      <label for="owner" class="label">Owner</label>
+      <select id="owner" name="owner" class="input{{if $e.owner}} input-error{{end}}">
+        <option value="internal"{{if eq $f.Owner "internal"}} selected{{end}}>Internal</option>
+        {{range $d.Clients}}<option value="{{.ID}}"{{if eq .ID $f.Owner}} selected{{end}}>{{.Name}}</option>{{end}}
+      </select>
+      {{template "field_error" $e.owner}}
+    </div>
+    <div>
+      <label for="provider_id" class="label">Provider</label>
+      <select id="provider_id" name="provider_id" class="input{{if $e.provider_id}} input-error{{end}}">
+        <option value="">Choose a provider…</option>
+        {{range $d.Providers}}<option value="{{.ID}}"{{if eq .ID $f.ProviderID}} selected{{end}}>{{.Name}}</option>{{end}}
+      </select>
+      {{template "field_error" $e.provider_id}}
+    </div>
+    <div>
+      <label for="provider_new" class="label">Or add a new provider</label>
+      <input id="provider_new" name="provider_new" class="input" value="{{$f.ProviderNew}}" placeholder="e.g. Niagahoster">
+      <p class="help">Created when you save if it does not exist yet.</p>
+    </div>
+    <div class="md:col-span-2">
+      <label for="url" class="label">URL</label>
+      <input id="url" name="url" type="url" class="input{{if $e.url}} input-error{{end}}" value="{{$f.URL}}" placeholder="https://panel.example.com">
+      {{template "field_error" $e.url}}
+    </div>
+  </div></section>
+
+  <section class="card"><div class="card-body grid gap-4 md:grid-cols-2">
+    <h2 class="text-base font-semibold md:col-span-2">Dates and renewal</h2>
+    <div>
+      <label for="order_date" class="label">Order date <span class="text-slate-400">(optional)</span></label>
+      <input id="order_date" name="order_date" type="date" class="input{{if $e.order_date}} input-error{{end}}" value="{{$f.OrderDate}}">
+      {{template "field_error" $e.order_date}}
+    </div>
+    <div>
+      <label for="expiration_date" class="label">Expiration date</label>
+      <input id="expiration_date" name="expiration_date" type="date" required class="input{{if $e.expiration_date}} input-error{{end}}" value="{{$f.ExpirationDate}}">
+      {{template "field_error" $e.expiration_date}}
+    </div>
+    <div>
+      <label for="renewal_period" class="label">Renewal period</label>
+      <select id="renewal_period" name="renewal_period" class="input{{if $e.renewal_period}} input-error{{end}}">
+        {{range $d.Periods}}<option value="{{.}}"{{if eq (print .) $f.RenewalPeriod}} selected{{end}}>{{.}} {{plural . "month" "months"}}</option>{{end}}
+        <option value="custom"{{if eq $f.RenewalPeriod "custom"}} selected{{end}}>Custom…</option>
+      </select>
+      {{template "field_error" $e.renewal_period}}
+    </div>
+    <div>
+      <label for="renewal_custom" class="label">Custom period (months)</label>
+      <input id="renewal_custom" name="renewal_custom" type="number" min="1" max="120" class="input" value="{{$f.RenewalCustom}}" placeholder="Used when Custom is selected">
+    </div>
+    <label class="flex items-center gap-2 text-sm md:col-span-2">
+      <input type="checkbox" name="auto_renew" value="1" class="h-4 w-4 rounded border-slate-300"{{if $f.AutoRenew}} checked{{end}}>
+      Auto-renew is on at the provider <span class="text-slate-500 dark:text-slate-400">(informational; reminders still send)</span>
+    </label>
+  </div></section>
+
+  <section class="card"><div class="card-body grid gap-4 md:grid-cols-3">
+    <h2 class="text-base font-semibold md:col-span-3">Pricing</h2>
+    <div>
+      <label for="currency" class="label">Currency</label>
+      <select id="currency" name="currency" class="input{{if $e.currency}} input-error{{end}}">
+        {{range $d.Currencies}}<option value="{{.}}"{{if eq (print .) $f.Currency}} selected{{end}}>{{.}}</option>{{end}}
+      </select>
+      {{template "field_error" $e.currency}}
+    </div>
+    <div>
+      <label for="cost_price" class="label">Cost price</label>
+      <input id="cost_price" name="cost_price" inputmode="decimal" required class="input{{if $e.cost_price}} input-error{{end}}" value="{{$f.CostPrice}}" placeholder="180000">
+      <p class="help">Paid to the provider per renewal period.</p>
+      {{template "field_error" $e.cost_price}}
+    </div>
+    <div>
+      <label for="selling_price" class="label">Selling price <span class="text-slate-400">(optional)</span></label>
+      <input id="selling_price" name="selling_price" inputmode="decimal" class="input{{if $e.selling_price}} input-error{{end}}" value="{{$f.SellingPrice}}" placeholder="250000">
+      <p class="help">Charged to the client. Leave empty for Internal assets.</p>
+      {{template "field_error" $e.selling_price}}
+    </div>
+  </div></section>
+
+  {{template "custom_fields" .}}
+
+  <div class="flex flex-wrap justify-end gap-2">
+    <a href="{{if $d.IsEdit}}/assets/{{$d.ID}}{{else}}/assets{{end}}" class="btn-secondary">Cancel</a>
+    <button type="submit" class="btn-primary">{{if $d.IsEdit}}Save changes{{else}}Create asset{{end}}</button>
+  </div>
+</form>
+{{end}}
+
+{{define "custom_fields"}}
+{{$d := .Data}}{{$f := $d.Form}}{{$e := $d.Errors}}
+<section id="custom-fields" class="card"><div class="card-body grid gap-4 md:grid-cols-2">
+  <h2 class="text-base font-semibold md:col-span-2">Type details</h2>
+  {{if $d.SupportsRDAP}}
+  <label class="flex items-center gap-2 text-sm md:col-span-2">
+    <input type="checkbox" name="rdap_enabled" value="1" class="h-4 w-4 rounded border-slate-300"{{if $f.RDAPEnabled}} checked{{end}}>
+    RDAP sync: update the expiration date automatically from the registry
+  </label>
+  {{end}}
+  {{range $d.Fields}}
+    {{$name := print "cf_" .Key}}{{$val := index $f.Custom .Key}}{{$err := index $e $name}}
+    <div class="{{if eq (print .Type) "long_text"}}md:col-span-2{{end}}">
+      {{if eq (print .Type) "boolean"}}
+        <input type="hidden" name="{{$name}}" value="">
+        <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="{{$name}}" value="true" class="h-4 w-4 rounded border-slate-300"{{if eq $val "true"}} checked{{end}}>{{.Label}}</label>
+      {{else}}
+        <label for="{{$name}}" class="label">{{.Label}}{{if .Required}} <span class="text-red-700 dark:text-red-400">*</span>{{end}}</label>
+        {{if eq (print .Type) "long_text"}}
+          <textarea id="{{$name}}" name="{{$name}}" rows="3" class="input{{if $err}} input-error{{end}}">{{$val}}</textarea>
+        {{else if eq (print .Type) "select"}}
+          <select id="{{$name}}" name="{{$name}}" class="input{{if $err}} input-error{{end}}">
+            <option value="">—</option>
+            {{range .Options}}<option value="{{.}}"{{if eq . $val}} selected{{end}}>{{.}}</option>{{end}}
+          </select>
+        {{else}}
+          <input id="{{$name}}" name="{{$name}}" class="input{{if $err}} input-error{{end}}" value="{{$val}}"
+            {{if eq (print .Type) "number"}}type="number" step="any"{{else if eq (print .Type) "date"}}type="date"{{else if eq (print .Type) "url"}}type="url" placeholder="https://"{{else}}type="text"{{end}}>
+        {{end}}
+      {{end}}
+      {{template "field_error" $err}}
+    </div>
+  {{else}}
+    {{if not $d.SupportsRDAP}}<p class="text-sm text-slate-500 md:col-span-2 dark:text-slate-400">This type has no custom fields.</p>{{end}}
+  {{end}}
+</div></section>
+{{end}}

@@ -123,12 +123,12 @@
     if (tabBtn) {
       var group = tabBtn.closest("[data-tabs]");
       if (group) {
-        group.querySelectorAll("[data-tab-target]").forEach(function (b) {
+        ownedBy(group, "[data-tab-target]").forEach(function (b) {
           var active = b === tabBtn;
           b.classList.toggle("tab-active", active);
           b.setAttribute("aria-selected", active ? "true" : "false");
         });
-        group.querySelectorAll("[data-tab-panel]").forEach(function (p) {
+        ownedBy(group, "[data-tab-panel]").forEach(function (p) {
           p.hidden = p.getAttribute("data-tab-panel") !== tabBtn.getAttribute("data-tab-target");
         });
       }
@@ -146,6 +146,21 @@
     }
   });
 
+  function ownedBy(group, selector) {
+    return Array.prototype.filter.call(group.querySelectorAll(selector), function (el) {
+      var owner = el.parentElement && el.parentElement.closest("[data-tabs]");
+      return owner === group;
+    });
+  }
+
+  function within(root, selector) {
+    var list = Array.prototype.slice.call(root.querySelectorAll ? root.querySelectorAll(selector) : []);
+    if (root.matches && root.matches(selector)) {
+      list.unshift(root);
+    }
+    return list;
+  }
+
   function csrfToken() {
     var raw = document.body.getAttribute("hx-headers");
     if (!raw) {
@@ -159,7 +174,7 @@
   }
 
   function initRevealTimers(root) {
-    root.querySelectorAll("[data-reveal-expires]").forEach(function (el) {
+    within(root, "[data-reveal-expires]").forEach(function (el) {
       if (el.getAttribute("data-reveal-armed")) {
         return;
       }
@@ -175,7 +190,7 @@
   }
 
   function initDialogs(root) {
-    root.querySelectorAll("dialog[data-open-on-load]").forEach(function (d) {
+    within(root, "dialog[data-open-on-load]").forEach(function (d) {
       d.removeAttribute("data-open-on-load");
       if (d.showModal && !d.open) {
         d.showModal();

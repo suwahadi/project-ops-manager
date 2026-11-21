@@ -37,3 +37,28 @@
   </form>
 </dialog>
 {{end}}
+
+{{define "status_badge"}}<span class="{{.BadgeClass}}">{{.Label}}</span>{{end}}
+
+{{define "countdown_badge"}}<span class="{{.Status.BadgeClass}}">{{.Countdown}}</span>{{end}}
+
+{{define "type_badge"}}<span class="badge-outline">{{icon .Icon "h-3.5 w-3.5"}}{{.Name}}</span>{{end}}
+
+{{define "owner_badge"}}{{if .}}<span class="badge-owner">{{.}}</span>{{else}}<span class="badge-internal">Internal</span>{{end}}{{end}}
+
+{{define "page_header"}}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+  <div class="min-w-0">
+    {{with .Back}}<a href="{{.Href}}" class="mb-1 inline-block text-sm text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white">← {{.Label}}</a>{{end}}
+    {{with .Subtitle}}<p class="text-sm text-slate-600 dark:text-slate-400">{{.}}</p>{{end}}
+  </div>
+  <div class="flex flex-wrap gap-2">{{with .Action}}<a href="{{.Href}}" class="btn-primary">{{icon "plus"}}{{.Label}}</a>{{end}}</div>
+</div>
+{{end}}
+
+{{define "dl_row"}}
+<div class="grid grid-cols-3 gap-3 py-2.5">
+  <dt class="text-sm text-slate-500 dark:text-slate-400">{{.Label}}</dt>
+  <dd class="col-span-2 min-w-0 break-words text-sm">{{.Value}}</dd>
+</div>
+{{end}}
