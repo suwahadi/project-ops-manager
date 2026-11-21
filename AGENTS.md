@@ -50,7 +50,7 @@ sqlc generate && git diff --exit-code internal/db/sqlc
 go test ./...
 ```
 
-Also run `go build ./...`, and run `go mod tidy` with no resulting diff.
+Also run `go build ./...`, and run `go mod tidy` with no resulting diff. `make check` runs the core gates. Set `OPS_TEST_DATABASE_URL` to also run the PostgreSQL integration tests.
 
 ### 1.6 Scope
 
@@ -75,7 +75,12 @@ The owner's answers to questions the PRD left open. They are as binding as the P
 | D8 | WebP encoder | A pure-Go **lossless** WebP encoder (e.g. `github.com/HugoSmits86/nativewebp`). The PRD's "quality 80" does not apply to uploads. Resizing to a 2560 px longest side and stripping metadata still apply. |
 | D9 | WebP size | Always store JPEG, PNG and WebP uploads as WebP, even when the result is larger than the original (DOC-2 as written). |
 | D10 | Screenshots | Screenshots keep CDP `Page.captureScreenshot` with format `webp`, quality 80 (PRJ-5). That is Chromium's encoder, not ours, so D8 does not affect it. |
-| D11 | Integration tests | Tests that need PostgreSQL run only when `OPS_TEST_DATABASE_URL` is set and call `t.Skip` otherwise, so `go test ./...` passes anywhere. |
+| D11 | Integration tests | Tests that need PostgreSQL run only when `OPS_TEST_DATABASE_URL` is set and call `t.Skip` otherwise, so `go test ./...` passes anywhere. `internal/db/dbtest` creates a throwaway database per test from that URL. |
+| D12 | Generated code | Files produced by `sqlc generate` keep the generator's `Code generated ... DO NOT EDIT.` header. Go tooling uses it to recognise generated files, so it counts as a tool directive. Never edit these files by hand. |
+| D13 | Commit author | Commits are authored as `suwahadi <suwahadi@gmail.com>` (repository-local git config). |
+| D14 | Extra packages | `internal/money` (decimal amounts as integer cents, pgx numeric scanning, IDR/USD formatting), `internal/settings` (settings table, encrypted secrets, key check and key rotation) and `internal/db/dbtest` (integration-test databases) were added to the PRD layout. Templates and static files embed themselves from `internal/web/templates` and `internal/web/static` to avoid import cycles. |
+| D15 | Key check | On start the app decrypts a stored key-check secret. A wrong `OPS_ENCRYPTION_KEY` makes it refuse to start instead of failing later. `opsmanager rotate-key` re-encrypts every secret and credential password with `OPS_ENCRYPTION_KEY_NEW` under `key_version + 1`. |
+| D16 | Chromium network | The Compose network named `internal` publishes no ports but is not a Docker `internal: true` network, because Chromium must reach public websites to take screenshots. |
 
 When a new ambiguity appears, record the decision here in the same commit that implements it.
 

@@ -1,0 +1,6 @@
+internal/web/static/css/app.css
+.env
+/opsmanager
+/bin/
+*.test
+deploy/.env

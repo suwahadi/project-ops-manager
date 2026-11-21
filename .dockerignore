@@ -1,0 +1,6 @@
+.git
+.env
+deploy/.env
+internal/web/static/css/app.css
+*.test
+/bin/
