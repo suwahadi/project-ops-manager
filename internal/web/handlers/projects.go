@@ -42,13 +42,31 @@ func (a *App) loadProjectFormOptions(r *http.Request, d *projectFormData) error 
 	return nil
 }
 
+type projectListData struct {
+	Filter            project.Filter
+	Items             []sqlc.ListProjectsRow
+	Clients           []sqlc.ListClientOptionsRow
+	ScreenshotOptions []project.Option
+	SortOptions       []project.Option
+}
+
 func (a *App) ProjectList(w http.ResponseWriter, r *http.Request) {
 	rows, err := a.Projects.List(r.Context())
 	if err != nil {
 		a.serverError(w, r, err)
 		return
 	}
-	a.render(w, r, http.StatusOK, "projects_list", "Projects", "projects", rows)
+	f := project.ParseFilter(r.URL.Query(), isUUID)
+	data := projectListData{Filter: f, Items: project.Apply(rows, f), ScreenshotOptions: project.ScreenshotOptions, SortOptions: project.SortOptions}
+	if isHTMX(r) && r.Header.Get("HX-Target") == "project-results" {
+		a.fragment(w, r, http.StatusOK, "projects_list", "project_results", data)
+		return
+	}
+	if data.Clients, err = a.Clients.Options(r.Context()); err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	a.render(w, r, http.StatusOK, "projects_list", "Projects", "projects", data)
 }
 
 func (a *App) ProjectNew(w http.ResponseWriter, r *http.Request) {

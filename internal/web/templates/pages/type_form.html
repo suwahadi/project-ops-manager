@@ -14,7 +14,7 @@
         <div><label for="t-name" class="label">Name</label><input id="t-name" name="name" required class="input{{if $e.name}} input-error{{end}}" value="{{$d.Name}}">{{template "field_error" $e.name}}</div>
         <div>
           <label for="t-icon" class="label">Icon</label>
-          <select id="t-icon" name="icon" class="input">{{range $d.Icons}}<option value="{{.}}"{{if eq . $d.Icon}} selected{{end}}>{{.}}</option>{{end}}</select>
+          <select id="t-icon" name="icon" data-combobox class="input">{{range $d.Icons}}<option value="{{.}}"{{if eq . $d.Icon}} selected{{end}}>{{.}}</option>{{end}}</select>
         </div>
         <div>
           <label for="t-offsets" class="label">Reminder days before expiry</label>
@@ -69,7 +69,7 @@
 <div class="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-6">
   <div class="col-span-2 sm:col-span-3"><label class="label" for="{{.P}}label">Label</label><input id="{{.P}}label" name="label" required class="input{{if and $e $e.label}} input-error{{end}}" value="{{.Label}}">{{if $e}}{{template "field_error" $e.label}}{{template "field_error" $e.key}}{{end}}</div>
   <div class="col-span-2 sm:col-span-3"><label class="label" for="{{.P}}type">Type</label>
-    {{$cur := .Type}}<select id="{{.P}}type" name="field_type" class="input">{{range .Types}}<option value="{{.}}"{{if eq (print .) $cur}} selected{{end}}>{{.Label}}</option>{{end}}</select></div>
+    {{$cur := .Type}}<select id="{{.P}}type" name="field_type" data-combobox class="input">{{range .Types}}<option value="{{.}}"{{if eq (print .) $cur}} selected{{end}}>{{.Label}}</option>{{end}}</select></div>
   <div class="sm:col-span-3"><label class="label" for="{{.P}}sort">Order</label><input id="{{.P}}sort" name="sort_order" type="number" class="input{{if and $e $e.sort_order}} input-error{{end}}" value="{{.Sort}}">{{if $e}}{{template "field_error" $e.sort_order}}{{end}}</div>
   <div class="sm:col-span-3"><span class="label" aria-hidden="true">&nbsp;</span><label class="check h-10"><input type="checkbox" name="is_required" value="1"{{if .Required}} checked{{end}}>Required</label></div>
   <div class="col-span-2 sm:col-span-6" data-show-if="{{.P}}type:select"{{if ne .Type "select"}} hidden{{end}}><label class="label" for="{{.P}}opts">Options</label><textarea id="{{.P}}opts" name="options" rows="3" class="input{{if and $e $e.options}} input-error{{end}}">{{.Options}}</textarea>{{if $e}}{{template "field_error" $e.options}}{{end}}</div>

@@ -41,13 +41,26 @@ func clientInputFrom(r *http.Request) (client.Input, map[string]string) {
 	return in, errs
 }
 
+type clientListData struct {
+	Filter       client.Filter
+	Items        []sqlc.ListClientsRow
+	UsageOptions []client.Option
+	SortOptions  []client.Option
+}
+
 func (a *App) ClientList(w http.ResponseWriter, r *http.Request) {
 	rows, err := a.Clients.List(r.Context())
 	if err != nil {
 		a.serverError(w, r, err)
 		return
 	}
-	a.render(w, r, http.StatusOK, "clients_list", "Clients", "clients", rows)
+	f := client.ParseFilter(r.URL.Query())
+	data := clientListData{Filter: f, Items: client.Apply(rows, f), UsageOptions: client.UsageOptions, SortOptions: client.SortOptions}
+	if isHTMX(r) && r.Header.Get("HX-Target") == "client-results" {
+		a.fragment(w, r, http.StatusOK, "clients_list", "client_results", data)
+		return
+	}
+	a.render(w, r, http.StatusOK, "clients_list", "Clients", "clients", data)
 }
 
 func (a *App) ClientNew(w http.ResponseWriter, r *http.Request) {

@@ -4,18 +4,8 @@
       hx-get="/assets" hx-target="#asset-results" hx-push-url="true"
       hx-trigger="change, input changed delay:300ms from:#filter-q, submit">
   <div class="card-body">
-    <div class="flex items-center gap-2">
-      <label for="filter-q" class="sr-only">Search assets</label>
-      <div class="relative min-w-0 flex-1">
-        <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">{{icon "search"}}</span>
-        <input id="filter-q" type="search" name="q" value="{{$d.Filter.Query}}" placeholder="Search by name" class="input pl-9">
-      </div>
-      <button type="button" class="btn-secondary md:hidden" data-collapse-toggle="filter-panel" aria-controls="filter-panel" aria-expanded="false">
-        {{icon "filter"}}<span class="sr-only sm:not-sr-only">Filters</span>{{if $d.ActiveFilters}}<span class="badge-owner h-5 px-1.5">{{$d.ActiveFilters}}</span>{{end}}
-      </button>
-      <a href="/assets/new" class="btn-primary btn-icon md:w-auto md:px-4" aria-label="Add asset">{{icon "plus"}}<span class="hidden md:inline">Add asset</span></a>
-    </div>
-    <div id="filter-panel" class="mt-4 hidden gap-4 sm:grid-cols-2 md:grid md:grid-cols-5">
+    {{template "filter_search_row" (dict "Label" "Search assets" "Placeholder" "Search by name" "Query" $d.Filter.Query "Active" $d.ActiveFilters "NewHref" "/assets/new" "NewLabel" "Add asset")}}
+    <div id="filter-panel" class="mt-4 hidden md:block"><div class="grid gap-4 sm:grid-cols-2 md:grid-cols-5">
       <div>
         <label for="filter-type" class="label">Type</label>
         <select data-combobox id="filter-type" name="type" class="input">
@@ -25,7 +15,7 @@
       </div>
       <div>
         <label for="filter-status" class="label">Status</label>
-        <select id="filter-status" name="status" class="input">
+        <select data-combobox id="filter-status" name="status" class="input">
           <option value="">All statuses</option>
           {{range $d.Statuses}}<option value="{{.}}"{{if eq (print .) $d.Filter.Status}} selected{{end}}>{{.Label}}</option>{{end}}
         </select>
@@ -47,15 +37,12 @@
       </div>
       <div>
         <label for="filter-sort" class="label">Sort</label>
-        <select id="filter-sort" name="sort" class="input">
+        <select data-combobox id="filter-sort" name="sort" class="input">
           {{range $d.SortOptions}}<option value="{{.Value}}"{{if eq .Value $d.Filter.Sort}} selected{{end}}>{{.Label}}</option>{{end}}
         </select>
       </div>
-      <div class="flex gap-2 sm:col-span-2 md:col-span-5 md:justify-end">
-        <noscript><button type="submit" class="btn-secondary">Apply</button></noscript>
-        <a href="/assets" class="btn-ghost w-full md:w-auto">Reset filters</a>
-      </div>
-    </div>
+      {{template "filter_reset" "/assets"}}
+    </div></div>
   </div>
 </form>
 {{template "asset_results" .}}
@@ -66,7 +53,7 @@
 <div id="asset-results">
   {{if not $d.Items}}
     {{if $d.Filtered}}
-      <div class="card"><div class="card-body py-12 text-center text-sm text-slate-600 dark:text-slate-400">No assets match these filters. <a href="/assets" class="text-indigo-700 underline dark:text-indigo-300">Reset filters</a></div></div>
+      {{template "filter_empty" (dict "Message" "No assets match these filters." "Href" "/assets")}}
     {{else}}
       {{template "empty_state" (dict "Message" "No assets yet." "Href" "/assets/new" "Action" "Add asset")}}
     {{end}}

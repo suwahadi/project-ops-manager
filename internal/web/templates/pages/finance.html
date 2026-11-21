@@ -7,7 +7,7 @@
   </div>
   <form method="get" action="/finance" class="flex items-center gap-2" data-autosubmit>
     <input type="hidden" name="view" value="{{$d.View}}">
-    <a href="{{$d.PrevHref}}" class="btn-secondary btn-icon" aria-label="Previous period">←</a>
+    <a href="{{$d.PrevHref}}" class="btn-secondary btn-icon" aria-label="Previous period">{{icon "prev" "h-5 w-5"}}</a>
     {{if eq $d.View "month"}}
       <label for="fin-month" class="sr-only">Month</label>
       <input id="fin-month" type="month" name="month" value="{{$d.MonthValue}}" class="input min-w-0 flex-1 sm:w-44">
@@ -15,7 +15,7 @@
       <label for="fin-year" class="sr-only">Year</label>
       <select id="fin-year" name="year" class="input min-w-0 flex-1 sm:w-32">{{range $d.Years}}<option value="{{.}}"{{if eq . $d.Year}} selected{{end}}>{{.}}</option>{{end}}</select>
     {{end}}
-    <a href="{{$d.NextHref}}" class="btn-secondary btn-icon" aria-label="Next period">→</a>
+    <a href="{{$d.NextHref}}" class="btn-secondary btn-icon" aria-label="Next period">{{icon "next" "h-5 w-5"}}</a>
     <noscript><button type="submit" class="btn-primary">Show</button></noscript>
   </form>
 </div></div>

@@ -7,6 +7,8 @@ import (
 
 var iconPaths = map[string]string{
 	"chevron":   `<path d="m6 9 6 6 6-6"/>`,
+	"prev":      `<path d="m15 18-6-6 6-6"/>`,
+	"next":      `<path d="m9 18 6-6-6-6"/>`,
 	"filter":    `<path d="M3 6h18M7 12h10M10 18h4"/>`,
 	"dashboard": `<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>`,
 	"assets":    `<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 7.7 4.73a2 2 0 0 0 2 0L20.7 7"/><path d="m7.5 4.27 9 5.15"/>`,

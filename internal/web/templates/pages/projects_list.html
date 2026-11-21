@@ -1,12 +1,51 @@
 {{define "content"}}
-<div class="mb-4 flex justify-end">
-  <a href="/projects/new" class="btn-primary w-full sm:w-auto">{{icon "plus"}}Add project</a>
-</div>
-{{if not .Data}}
-  {{template "empty_state" (dict "Message" "No projects yet." "Href" "/projects/new" "Action" "Add project")}}
-{{else}}
+{{$d := .Data}}
+<form id="project-filters" method="get" action="/projects" class="card mb-4"
+      hx-get="/projects" hx-target="#project-results" hx-push-url="true"
+      hx-trigger="change, input changed delay:300ms from:#filter-q, submit">
+  <div class="card-body">
+    {{template "filter_search_row" (dict "Label" "Search projects" "Placeholder" "Search by name, URL or owner" "Query" $d.Filter.Query "Active" $d.Filter.Active "NewHref" "/projects/new" "NewLabel" "Add project")}}
+    <div id="filter-panel" class="mt-4 hidden md:block"><div class="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+      <div>
+        <label for="filter-owner" class="label">Owner</label>
+        <select data-combobox id="filter-owner" name="owner" class="input">
+          <option value="">All owners</option>
+          <option value="internal"{{if eq $d.Filter.Owner "internal"}} selected{{end}}>Internal</option>
+          {{range $d.Clients}}<option value="{{.ID}}"{{if eq .ID $d.Filter.Owner}} selected{{end}}>{{.Name}}</option>{{end}}
+        </select>
+      </div>
+      <div>
+        <label for="filter-screenshot" class="label">Screenshot</label>
+        <select data-combobox id="filter-screenshot" name="screenshot" class="input">
+          {{range $d.ScreenshotOptions}}<option value="{{.Value}}"{{if eq .Value $d.Filter.Screenshot}} selected{{end}}>{{.Label}}</option>{{end}}
+        </select>
+      </div>
+      <div>
+        <label for="filter-sort" class="label">Sort</label>
+        <select data-combobox id="filter-sort" name="sort" class="input">
+          {{range $d.SortOptions}}<option value="{{.Value}}"{{if eq .Value $d.Filter.Sort}} selected{{end}}>{{.Label}}</option>{{end}}
+        </select>
+      </div>
+      {{template "filter_reset" "/projects"}}
+    </div></div>
+  </div>
+</form>
+{{template "project_results" .}}
+{{end}}
+
+{{define "project_results"}}
+{{$d := .Data}}
+<div id="project-results">
+  {{if not $d.Items}}
+    {{if $d.Filter.Filtered}}
+      {{template "filter_empty" (dict "Message" "No projects match these filters." "Href" "/projects")}}
+    {{else}}
+      {{template "empty_state" (dict "Message" "No projects yet." "Href" "/projects/new" "Action" "Add project")}}
+    {{end}}
+  {{else}}
+  <p class="mb-3 text-sm text-slate-500 dark:text-slate-400">{{len $d.Items}} {{plural (len $d.Items) "project" "projects"}}</p>
 <ul class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-  {{range .Data}}
+  {{range $d.Items}}
   <li class="card overflow-hidden"><a href="/projects/{{.ID}}" class="block">
     {{if .ScreenshotPath}}
       <img src="/projects/{{.ID}}/screenshot" alt="Screenshot of {{.Name}}" class="aspect-[16/10] w-full border-b border-slate-200 bg-slate-100 object-cover object-top dark:border-slate-800 dark:bg-slate-800" loading="lazy">
@@ -21,5 +60,6 @@
   </a></li>
   {{end}}
 </ul>
-{{end}}
+  {{end}}
+</div>
 {{end}}

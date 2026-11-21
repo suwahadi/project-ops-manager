@@ -35,6 +35,9 @@
     this.select = select;
     this.multiple = select.multiple;
     this.inline = select.getAttribute("data-combobox") === "inline";
+    this.searchable = this.multiple || this.inline || select.options.length > 8;
+    this.typed = "";
+    this.typedTimer = null;
     this.items = [];
     this.visible = [];
     this.active = -1;
@@ -84,7 +87,7 @@
     }
 
     this.panel = el("div", this.inline ? "combo-panel-inline" : "combo-panel");
-    var searchWrap = el("div", "relative");
+    var searchWrap = el("div", this.searchable ? "relative" : "sr-only");
     searchWrap.appendChild(svgIcon("m21 21-6-6m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0z", "pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400"));
     this.search = el("input", "input pl-9");
     this.search.type = "search";
@@ -101,7 +104,7 @@
     }
     searchWrap.appendChild(this.search);
     this.panel.appendChild(searchWrap);
-    this.list = el("ul", "combo-list");
+    this.list = el("ul", this.searchable ? "combo-list mt-2" : "combo-list");
     this.list.id = this.id + "-list";
     this.list.setAttribute("role", "listbox");
     if (this.multiple) {
@@ -128,7 +131,11 @@
       });
     }
     this.search.addEventListener("input", function () {
-      self.filter();
+      if (self.searchable) {
+        self.filter();
+      } else {
+        self.typeahead();
+      }
     });
     this.search.addEventListener("keydown", function (e) {
       self.onKey(e);
@@ -207,6 +214,24 @@
     });
     this.renderList();
     this.setActive(this.visible.length ? 0 : -1);
+  };
+
+  Combobox.prototype.typeahead = function () {
+    var self = this;
+    var q = this.search.value.trim().toLowerCase();
+    clearTimeout(this.typedTimer);
+    this.typedTimer = setTimeout(function () {
+      self.search.value = "";
+    }, 700);
+    if (!q) {
+      return;
+    }
+    for (var pos = 0; pos < this.visible.length; pos++) {
+      if (this.items[this.visible[pos]].label.toLowerCase().indexOf(q) === 0) {
+        this.setActive(pos);
+        return;
+      }
+    }
   };
 
   Combobox.prototype.renderList = function () {
@@ -326,7 +351,7 @@
     }
     var current = selected[0] || this.items[0];
     this.triggerText.textContent = current ? current.label : "";
-    this.triggerText.classList.toggle("text-slate-400", !current || current.empty);
+    this.triggerText.classList.toggle("text-slate-400", !current || current.option.hasAttribute("data-placeholder"));
   };
 
   Combobox.instances = [];

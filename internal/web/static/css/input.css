@@ -240,7 +240,7 @@
     @apply rounded-lg border border-slate-200 p-2 dark:border-slate-700;
   }
   .combo-list {
-    @apply mt-2 max-h-64 overflow-y-auto overscroll-contain;
+    @apply max-h-64 overflow-y-auto overscroll-contain;
   }
   .combo-option {
     @apply flex min-h-10 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-700 dark:text-slate-200;

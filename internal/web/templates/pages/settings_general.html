@@ -17,7 +17,7 @@
       </div>
       <div>
         <label for="default_currency" class="label">Default currency</label>
-        <select id="default_currency" name="default_currency" class="input">
+        <select id="default_currency" name="default_currency" data-combobox class="input">
           {{range $f.Currencies}}<option value="{{.}}"{{if eq (print .) $f.Currency}} selected{{end}}>{{.}}</option>{{end}}
         </select>
         {{template "field_error" $f.Errors.default_currency}}

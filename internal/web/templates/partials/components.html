@@ -71,3 +71,31 @@
 {{define "job_badge"}}{{if .}}{{if eq (deref .) "pending"}}<span class="badge-outline">Capturing</span>{{else if eq (deref .) "failed"}}<span class="badge-outline-error">Failed</span>{{end}}{{end}}{{end}}
 
 {{define "saved_badge"}}{{if .}}<span class="badge-active ml-1.5 h-5 px-2">Saved</span>{{end}}{{end}}
+
+{{define "filter_search_row"}}
+<div class="flex items-center gap-2">
+  <label for="filter-q" class="sr-only">{{.Label}}</label>
+  <div class="relative min-w-0 flex-1">
+    <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">{{icon "search"}}</span>
+    <input id="filter-q" type="search" name="q" value="{{.Query}}" placeholder="{{.Placeholder}}" class="input pl-9">
+  </div>
+  <button type="button" class="btn-secondary md:hidden" data-collapse-toggle="filter-panel" aria-controls="filter-panel" aria-expanded="false">
+    {{icon "filter"}}<span class="sr-only sm:not-sr-only">Filters</span>{{if .Active}}<span class="badge-owner h-5 px-1.5">{{.Active}}</span>{{end}}
+  </button>
+  <a href="{{.NewHref}}" class="btn-primary btn-icon md:w-auto md:px-4" aria-label="{{.NewLabel}}">{{icon "plus"}}<span class="hidden md:inline">{{.NewLabel}}</span></a>
+</div>
+{{end}}
+
+{{define "filter_reset"}}
+<div class="flex gap-2 sm:col-span-2 md:col-span-full md:justify-end">
+  <noscript><button type="submit" class="btn-secondary">Apply</button></noscript>
+  <a href="{{.}}" class="btn-secondary w-full md:w-auto">{{icon "close" "h-4 w-4"}}Reset filters</a>
+</div>
+{{end}}
+
+{{define "filter_empty"}}
+<div class="card"><div class="card-body flex flex-col items-center gap-4 py-12 text-center">
+  <p class="text-sm text-slate-600 dark:text-slate-400">{{.Message}}</p>
+  <a href="{{.Href}}" class="btn-secondary">{{icon "close" "h-4 w-4"}}Reset filters</a>
+</div></div>
+{{end}}
