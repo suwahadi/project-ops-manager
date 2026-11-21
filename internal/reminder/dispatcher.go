@@ -70,7 +70,7 @@ func (d *Dispatcher) loadChannels(ctx context.Context, all settings.All) (channe
 		if err != nil {
 			return ch, fmt.Errorf("load telegram token: %w", err)
 		}
-		ch.telegramCfg = telegram.Config{Token: token, ChatID: all.Telegram.ChatID}
+		ch.telegramCfg = telegram.Config{Token: token, ChatID: all.Telegram.ChatID, TopicID: all.Telegram.TopicID}
 	}
 	if ch.email {
 		pw, err := d.settings.Secret(ctx, settings.SecretSMTPPassword)
@@ -78,7 +78,7 @@ func (d *Dispatcher) loadChannels(ctx context.Context, all settings.All) (channe
 			return ch, fmt.Errorf("load smtp password: %w", err)
 		}
 		e := all.Email
-		ch.emailCfg = email.Config{Host: e.Host, Port: e.Port, Username: e.Username, Password: pw, From: e.From, To: e.To}
+		ch.emailCfg = email.Config{Host: e.Host, Port: e.Port, Username: e.Username, Password: pw, From: e.From, FromName: e.FromName, To: e.To}
 	}
 	return ch, nil
 }

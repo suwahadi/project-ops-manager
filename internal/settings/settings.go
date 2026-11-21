@@ -36,6 +36,7 @@ type General struct {
 type Telegram struct {
 	Enabled  bool
 	ChatID   string
+	TopicID  int64
 	HasToken bool
 }
 
@@ -45,6 +46,7 @@ type Email struct {
 	Port        int
 	Username    string
 	From        string
+	FromName    string
 	To          string
 	HasPassword bool
 }
@@ -131,6 +133,7 @@ func (s *Store) Load(ctx context.Context) (All, error) {
 		Telegram: Telegram{
 			Enabled: boolean("telegram_enabled"),
 			ChatID:  str("telegram_chat_id", ""),
+			TopicID: int64(integer("telegram_topic_id", 0)),
 		},
 		Email: Email{
 			Enabled:  boolean("email_enabled"),
@@ -138,6 +141,7 @@ func (s *Store) Load(ctx context.Context) (All, error) {
 			Port:     integer("smtp_port", 587),
 			Username: str("smtp_username", ""),
 			From:     str("smtp_from", ""),
+			FromName: str("smtp_from_name", ""),
 			To:       str("smtp_to", ""),
 		},
 	}
@@ -193,6 +197,9 @@ func (s *Store) SaveTelegram(ctx context.Context, t Telegram, newToken string) e
 		if err := s.set(ctx, q, "telegram_chat_id", t.ChatID); err != nil {
 			return err
 		}
+		if err := s.set(ctx, q, "telegram_topic_id", t.TopicID); err != nil {
+			return err
+		}
 		if newToken != "" {
 			return s.putSecret(ctx, q, SecretTelegramBotToken, newToken)
 		}
@@ -204,7 +211,7 @@ func (s *Store) SaveEmail(ctx context.Context, e Email, newPassword string) erro
 	return s.inTx(ctx, func(q *sqlc.Queries) error {
 		values := map[string]any{
 			"email_enabled": e.Enabled, "smtp_host": e.Host, "smtp_port": e.Port,
-			"smtp_username": e.Username, "smtp_from": e.From, "smtp_to": e.To,
+			"smtp_username": e.Username, "smtp_from": e.From, "smtp_from_name": e.FromName, "smtp_to": e.To,
 		}
 		for k, v := range values {
 			if err := s.set(ctx, q, k, v); err != nil {

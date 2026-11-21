@@ -18,8 +18,9 @@ import (
 const DefaultAPIBase = "https://api.telegram.org"
 
 type Config struct {
-	Token  string
-	ChatID string
+	Token   string
+	ChatID  string
+	TopicID int64
 }
 
 type Sender struct {
@@ -39,7 +40,11 @@ func (s *Sender) Send(ctx context.Context, cfg Config, msg notify.Message) error
 	if len(text) > 4000 {
 		text = text[:4000]
 	}
-	payload, err := json.Marshal(map[string]any{"chat_id": cfg.ChatID, "text": text, "disable_web_page_preview": true})
+	body := map[string]any{"chat_id": strings.TrimSpace(cfg.ChatID), "text": text, "disable_web_page_preview": true}
+	if cfg.TopicID > 0 {
+		body["message_thread_id"] = cfg.TopicID
+	}
+	payload, err := json.Marshal(body)
 	if err != nil {
 		return err
 	}
@@ -58,12 +63,12 @@ func (s *Sender) Send(ctx context.Context, cfg Config, msg notify.Message) error
 		return errors.New("telegram request failed")
 	}
 	defer resp.Body.Close()
-	body, _ := io.ReadAll(io.LimitReader(resp.Body, 64<<10))
+	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 64<<10))
 	var result struct {
 		OK          bool   `json:"ok"`
 		Description string `json:"description"`
 	}
-	_ = json.Unmarshal(body, &result)
+	_ = json.Unmarshal(raw, &result)
 	if resp.StatusCode != http.StatusOK || !result.OK {
 		desc := strings.ReplaceAll(result.Description, cfg.Token, "[redacted]")
 		if desc == "" {

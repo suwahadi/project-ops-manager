@@ -72,6 +72,37 @@ git pull
 docker compose -f deploy/compose.yaml up -d --build
 ```
 
+## Notification setup
+
+Configure both channels under **Settings → Notifications**. **Send test** uses the values currently in the form, so you can test before saving; press **Save** to keep them. A secret field left empty keeps the stored secret.
+
+### Email (SMTP relay)
+
+| Field | Value |
+| --- | --- |
+| SMTP host | The relay host from your email provider's SMTP settings. |
+| Port | `587` (STARTTLS, recommended) or `465` (implicit TLS). Plaintext SMTP is refused; port `2525` works if it offers STARTTLS. |
+| Username | The **SMTP login** from the provider's SMTP settings. It is often not your account email. |
+| Password | The **SMTP key** generated in the provider's dashboard, not your account password. Stored encrypted. |
+| From name | Optional display name, e.g. `Ops Manager`. |
+| From address | Only the email address, e.g. `ops@example.com`. It must be a sender or domain verified with the provider, or the relay rejects the message. |
+| To address | The mailbox that receives reminders. |
+
+### Telegram bot
+
+1. Chat with **@BotFather**, send `/newbot` and copy the bot token (`123456789:ABC…`).
+2. Find the chat ID:
+   - **Private chat:** open your bot and press **Start**; a bot cannot message you until you do. Then open `https://api.telegram.org/bot<TOKEN>/getUpdates` and copy `message.chat.id` (a positive number).
+   - **Group:** add the bot to the group, send any message there, then read `chat.id` from `getUpdates` (a negative number, usually starting with `-100`).
+   - **Channel:** make the bot an administrator, then use `@channelname` or the `-100…` ID.
+3. **Topic ID** (optional): for a group with Topics enabled, open a message in the topic, choose **Copy link**, and use the last number of `https://t.me/c/<group>/<topic>/<message>`. Leave it empty to post in the General topic.
+4. Enter the bot token and chat ID, press **Send test**, then tick **Send reminders via Telegram** and **Save**.
+
+Common errors shown by **Send test**:
+- `401 Unauthorized`: wrong token.
+- `400 chat not found`: wrong chat ID, or the bot is not in the group.
+- `403 Forbidden`: you never pressed Start, or the bot was blocked or removed.
+
 ## Environment variables
 
 Put these in `deploy/.env`. Never commit that file.

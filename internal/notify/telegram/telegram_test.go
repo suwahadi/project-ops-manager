@@ -30,6 +30,27 @@ func TestSend(t *testing.T) {
 	}
 }
 
+func TestSendWithTopic(t *testing.T) {
+	var got map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&got)
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	}))
+	defer srv.Close()
+	s := &Sender{APIBase: srv.URL, Client: srv.Client()}
+	if err := s.Send(context.Background(), Config{Token: "1:a", ChatID: "-1001234567890", TopicID: 42}, notify.Message{Subject: "s"}); err != nil {
+		t.Fatal(err)
+	}
+	if got["chat_id"] != "-1001234567890" || got["message_thread_id"] != 42.0 {
+		t.Fatalf("payload %v", got)
+	}
+	got = nil
+	_ = s.Send(context.Background(), Config{Token: "1:a", ChatID: "1"}, notify.Message{})
+	if _, ok := got["message_thread_id"]; ok {
+		t.Fatal("topic must be omitted when not set")
+	}
+}
+
 func TestSendErrorsNeverLeakToken(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)

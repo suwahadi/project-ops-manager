@@ -2,6 +2,7 @@ package email
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"strings"
@@ -18,11 +19,13 @@ type Config struct {
 	Username string
 	Password string
 	From     string
+	FromName string
 	To       string
 }
 
 type Sender struct {
-	Timeout time.Duration
+	Timeout   time.Duration
+	TLSConfig *tls.Config
 }
 
 func NewSender() *Sender { return &Sender{Timeout: 30 * time.Second} }
@@ -49,7 +52,13 @@ func (c Config) Validate() error {
 
 func BuildMessage(cfg Config, m notify.Message) (*mail.Msg, error) {
 	msg := mail.NewMsg()
-	if err := msg.From(cfg.From); err != nil {
+	var fromErr error
+	if name := strings.TrimSpace(cfg.FromName); name != "" {
+		fromErr = msg.FromFormat(name, strings.TrimSpace(cfg.From))
+	} else {
+		fromErr = msg.From(strings.TrimSpace(cfg.From))
+	}
+	if err := fromErr; err != nil {
 		return nil, fmt.Errorf("invalid from address: %w", err)
 	}
 	if err := msg.To(cfg.To); err != nil {
@@ -71,6 +80,9 @@ func (s *Sender) Send(ctx context.Context, cfg Config, m notify.Message) error {
 		return err
 	}
 	opts := []mail.Option{mail.WithPort(cfg.Port), mail.WithTimeout(s.Timeout)}
+	if s.TLSConfig != nil {
+		opts = append(opts, mail.WithTLSConfig(s.TLSConfig))
+	}
 	if cfg.Port == 465 {
 		opts = append(opts, mail.WithSSL())
 	} else {

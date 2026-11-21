@@ -16,14 +16,21 @@
           <input id="tg-token" name="bot_token" type="password" autocomplete="off" class="input{{if $te.bot_token}} input-error{{end}}">
           {{template "field_error" $te.bot_token}}
         </div>
-        <div>
-          <label for="tg-chat" class="label">Chat ID</label>
-          <input id="tg-chat" name="chat_id" class="input{{if $te.chat_id}} input-error{{end}}" value="{{$t.ChatID}}">
-          {{template "field_error" $te.chat_id}}
+        <div class="form-grid">
+          <div>
+            <label for="tg-chat" class="label">Chat ID</label>
+            <input id="tg-chat" name="chat_id" class="input{{if $te.chat_id}} input-error{{end}}" value="{{$t.ChatID}}">
+            {{template "field_error" $te.chat_id}}
+          </div>
+          <div>
+            <label for="tg-topic" class="label">Topic ID</label>
+            <input id="tg-topic" name="topic_id" inputmode="numeric" class="input{{if $te.topic_id}} input-error{{end}}" value="{{if $t.TopicID}}{{$t.TopicID}}{{end}}">
+            {{template "field_error" $te.topic_id}}
+          </div>
         </div>
       </div>
       <div class="form-actions">
-        <button type="button" class="btn-secondary" hx-post="/settings/notifications/telegram/test" hx-swap="none" hx-disabled-elt="this">Send test<span class="htmx-indicator">…</span></button>
+        <button type="button" class="btn-secondary" hx-post="/settings/notifications/telegram/test" hx-include="closest form" hx-swap="none" hx-disabled-elt="this">Send test<span class="htmx-indicator">…</span></button>
         <button type="submit" class="btn-primary">Save</button>
       </div>
     </form>
@@ -44,12 +51,13 @@
         <div class="form-grid">
           <div><label for="m-user" class="label">Username</label><input id="m-user" name="username" class="input" autocomplete="off" value="{{$e.Username}}"></div>
           <div><label for="m-pass" class="label">Password{{template "saved_badge" $e.HasPassword}}</label><input id="m-pass" name="password" type="password" autocomplete="new-password" class="input"></div>
+          <div><label for="m-from-name" class="label">From name</label><input id="m-from-name" name="from_name" class="input{{if $me.from_name}} input-error{{end}}" value="{{$e.FromName}}">{{template "field_error" $me.from_name}}</div>
           <div><label for="m-from" class="label">From address</label><input id="m-from" name="from" type="email" class="input{{if $me.from}} input-error{{end}}" value="{{$e.From}}">{{template "field_error" $me.from}}</div>
-          <div><label for="m-to" class="label">To address</label><input id="m-to" name="to" type="email" class="input{{if $me.to}} input-error{{end}}" value="{{$e.To}}">{{template "field_error" $me.to}}</div>
+          <div class="sm:col-span-2"><label for="m-to" class="label">To address</label><input id="m-to" name="to" type="email" class="input{{if $me.to}} input-error{{end}}" value="{{$e.To}}">{{template "field_error" $me.to}}</div>
         </div>
       </div>
       <div class="form-actions">
-        <button type="button" class="btn-secondary" hx-post="/settings/notifications/email/test" hx-swap="none" hx-disabled-elt="this">Send test<span class="htmx-indicator">…</span></button>
+        <button type="button" class="btn-secondary" hx-post="/settings/notifications/email/test" hx-include="closest form" hx-swap="none" hx-disabled-elt="this">Send test<span class="htmx-indicator">…</span></button>
         <button type="submit" class="btn-primary">Save</button>
       </div>
     </form>
