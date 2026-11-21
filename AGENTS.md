@@ -84,6 +84,10 @@ The owner's answers to questions the PRD left open. They are as binding as the P
 | D18 | Internal selling price | An Internal asset with a selling price fails validation with an inline error. It is never silently cleared. |
 | D19 | Markdown package | `internal/markdown` wraps goldmark (GFM) and bluemonday. Notes and project briefs share it. |
 | D20 | Custom field keys | A field key is set on creation (derived from the label if empty) and cannot change afterwards. Label, type, options, required flag and order stay editable. |
+| D21 | Reminder window (REM-2, REM-4) | Each offset has a send moment: its due day at the configured send time in the Settings timezone. A run picks the most recent offset whose moment has passed and that is either due today or fell after the previous successful run (`reminder_last_run` setting). This sends today's reminder once, sends only the latest missed offset after downtime, and does not backfill offsets that passed before an asset was created. |
+| D22 | Reminder delivery | The dispatcher runs every 5 minutes. A separate retry job runs every minute, so the 1/5/15-minute backoff (REM-6) is honoured; both share one advisory lock. A pending log is dropped, not sent, if its asset is cancelled, its expiration date changed, the date passed or the channel was disabled. A log reaches `failed` after the initial attempt plus 3 retries. |
+| D23 | SMTP security | Port 465 uses implicit TLS. Every other port requires STARTTLS (`TLSMandatory`); plaintext SMTP is not supported. |
+| D24 | Dashboard failure banner (DSH-5) | The banner shows when the most recently finished reminder log is `failed`, linking to that asset's Reminders tab. Migration 00002 adds `reminder_logs.updated_at` and a `job_runs` table for job history. |
 | D16 | Chromium network | The Compose network named `internal` publishes no ports but is not a Docker `internal: true` network, because Chromium must reach public websites to take screenshots. |
 
 When a new ambiguity appears, record the decision here in the same commit that implements it.

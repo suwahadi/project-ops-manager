@@ -21,9 +21,13 @@ import (
 	"github.com/suwahadi/project-ops-manager/internal/config"
 	"github.com/suwahadi/project-ops-manager/internal/credential"
 	"github.com/suwahadi/project-ops-manager/internal/db"
+	"github.com/suwahadi/project-ops-manager/internal/db/sqlc"
 	"github.com/suwahadi/project-ops-manager/internal/jobs"
 	"github.com/suwahadi/project-ops-manager/internal/markdown"
+	"github.com/suwahadi/project-ops-manager/internal/notify/email"
+	"github.com/suwahadi/project-ops-manager/internal/notify/telegram"
 	"github.com/suwahadi/project-ops-manager/internal/provider"
+	"github.com/suwahadi/project-ops-manager/internal/reminder"
 	"github.com/suwahadi/project-ops-manager/internal/settings"
 	"github.com/suwahadi/project-ops-manager/internal/web"
 	"github.com/suwahadi/project-ops-manager/internal/web/handlers"
@@ -83,6 +87,9 @@ func serve(ctx context.Context, logger *slog.Logger) error {
 		logger.Info("admin account created")
 	}
 	store := settings.NewStore(pool, box)
+	tgSender := telegram.NewSender()
+	emailSender := email.NewSender()
+	dispatcher := reminder.NewDispatcher(pool, store, tgSender, emailSender, cfg.BaseURL, logger, now)
 	renderer, err := templates.New(nil)
 	if err != nil {
 		return err
@@ -99,12 +106,32 @@ func serve(ctx context.Context, logger *slog.Logger) error {
 		Providers:   provider.NewService(pool),
 		Credentials: credential.NewService(pool, box),
 		Markdown:    markdown.New(),
+		Queries:     sqlc.New(pool),
+		Telegram:    tgSender,
+		Email:       emailSender,
 		Now:         now,
 		BaseURL:     cfg.BaseURL,
 		Secure:      strings.HasPrefix(cfg.BaseURL, "https://"),
 	})
 
 	runner := jobs.NewRunner(pool, logger,
+		jobs.Job{
+			Name: "reminder_dispatcher", LockKey: db.LockReminders, Schedule: jobs.Every(5 * time.Minute), RunAtStart: true,
+			Run: func(ctx context.Context) error {
+				res, err := dispatcher.Run(ctx)
+				if res.Scheduled+res.Sent+res.Retried+res.Failed > 0 {
+					logger.Info("reminder dispatcher finished", "scheduled", res.Scheduled, "sent", res.Sent, "retrying", res.Retried, "failed", res.Failed)
+				}
+				return err
+			},
+		},
+		jobs.Job{
+			Name: "reminder_retry", LockKey: db.LockReminders, Schedule: jobs.Every(time.Minute),
+			Run: func(ctx context.Context) error {
+				_, err := dispatcher.Deliver(ctx)
+				return err
+			},
+		},
 		jobs.Job{
 			Name: "session_cleanup", LockKey: db.LockCleanup, Schedule: jobs.Every(24 * time.Hour), RunAtStart: true,
 			Run: func(ctx context.Context) error {

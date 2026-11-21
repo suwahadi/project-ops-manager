@@ -11,6 +11,7 @@ import (
 	"github.com/suwahadi/project-ops-manager/internal/assettype"
 	"github.com/suwahadi/project-ops-manager/internal/credential"
 	"github.com/suwahadi/project-ops-manager/internal/db/sqlc"
+	"github.com/suwahadi/project-ops-manager/internal/reminder"
 )
 
 type assetTab struct {
@@ -21,6 +22,7 @@ type assetTab struct {
 var assetTabs = []assetTab{
 	{"overview", "Overview"},
 	{"notes", "Notes & Credentials"},
+	{"reminders", "Reminders"},
 }
 
 type customFieldView struct {
@@ -88,7 +90,85 @@ func (a *App) AssetShow(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) loadAssetTabExtra(r *http.Request, d *assetDetailData) error {
+	switch d.Tab {
+	case "reminders":
+		extra, err := a.reminderTab(r, d.Asset)
+		if err != nil {
+			return err
+		}
+		d.Extra = extra
+	}
 	return nil
+}
+
+type reminderCell struct {
+	Channel string
+	Status  string
+	Class   string
+}
+
+type reminderPlanRow struct {
+	Offset int32
+	Due    time.Time
+	Cells  []reminderCell
+}
+
+type reminderTabData struct {
+	Plan     []reminderPlanRow
+	Logs     []sqlc.ReminderLog
+	Channels []string
+	SendTime string
+}
+
+func (a *App) reminderTab(r *http.Request, det asset.Detail) (reminderTabData, error) {
+	ctx := r.Context()
+	all, err := a.Settings.Load(ctx)
+	if err != nil {
+		return reminderTabData{}, err
+	}
+	logs, err := a.Queries.ListReminderLogsByAsset(ctx, det.ID)
+	if err != nil {
+		return reminderTabData{}, err
+	}
+	var channels []string
+	if all.Telegram.Enabled {
+		channels = append(channels, reminder.ChannelTelegram)
+	}
+	if all.Email.Enabled {
+		channels = append(channels, reminder.ChannelEmail)
+	}
+	today := asset.Today(a.Now(), all.General.Location())
+	data := reminderTabData{Logs: logs, Channels: channels, SendTime: all.General.SendTime}
+	for _, p := range reminder.Plan(det.ExpirationDate, det.ReminderOffsets) {
+		row := reminderPlanRow{Offset: p.Offset, Due: p.Due}
+		for _, ch := range channels {
+			cell := reminderCell{Channel: ch}
+			var found *sqlc.ReminderLog
+			for i := range logs {
+				l := logs[i]
+				if l.Channel == ch && l.OffsetDays == p.Offset && l.ExpirationDate.Equal(det.ExpirationDate) {
+					found = &logs[i]
+				}
+			}
+			switch {
+			case found != nil && found.Status == "sent":
+				cell.Status, cell.Class = "Sent", "badge-active"
+			case found != nil && found.Status == "failed":
+				cell.Status, cell.Class = "Failed", "badge-expired"
+			case found != nil:
+				cell.Status, cell.Class = "Sending", "badge-expiring"
+			case det.CancelledAt != nil:
+				cell.Status, cell.Class = "Stopped", "badge-cancelled"
+			case p.Due.Before(today):
+				cell.Status, cell.Class = "Not sent", "badge-cancelled"
+			default:
+				cell.Status, cell.Class = "Scheduled", "badge-outline"
+			}
+			row.Cells = append(row.Cells, cell)
+		}
+		data.Plan = append(data.Plan, row)
+	}
+	return data, nil
 }
 
 func credentialInput(r *http.Request) (credential.Input, map[string]string) {

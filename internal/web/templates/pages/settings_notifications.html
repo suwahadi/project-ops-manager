@@ -1,0 +1,58 @@
+{{define "content"}}
+{{template "settings_tabs" .Data}}
+{{$d := .Data.Body}}{{$t := $d.Telegram}}{{$e := $d.Email}}{{$te := $d.TGErrors}}{{$me := $d.MailErrs}}
+<p class="mb-4 text-sm text-slate-600 dark:text-slate-400">Reminders go out on every enabled channel. Secrets are encrypted at rest and never shown again after saving.</p>
+<div class="grid items-start gap-6 lg:grid-cols-2">
+  <section class="card">
+    <form method="post" action="/settings/notifications/telegram" class="card-body space-y-4" novalidate>
+      {{template "csrf" .CSRF}}
+      <div class="flex items-center justify-between gap-2">
+        <h2 class="text-base font-semibold">Telegram</h2>
+        {{if $t.Enabled}}<span class="badge-active">Enabled</span>{{else}}<span class="badge-cancelled">Disabled</span>{{end}}
+      </div>
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="enabled" value="1" class="h-4 w-4 rounded border-slate-300"{{if $t.Enabled}} checked{{end}}>Send reminders via Telegram</label>
+      <div>
+        <label for="tg-token" class="label">Bot token</label>
+        <input id="tg-token" name="bot_token" type="password" autocomplete="off" class="input{{if $te.bot_token}} input-error{{end}}" placeholder="{{if $t.HasToken}}Saved — leave blank to keep{{else}}123456:ABC…{{end}}">
+        {{template "field_error" $te.bot_token}}
+      </div>
+      <div>
+        <label for="tg-chat" class="label">Chat ID</label>
+        <input id="tg-chat" name="chat_id" class="input{{if $te.chat_id}} input-error{{end}}" value="{{$t.ChatID}}">
+        {{template "field_error" $te.chat_id}}
+      </div>
+      <div class="flex flex-wrap justify-end gap-2">
+        <button type="button" class="btn-secondary" hx-post="/settings/notifications/telegram/test" hx-swap="none" hx-disabled-elt="this">Send test<span class="htmx-indicator">…</span></button>
+        <button type="submit" class="btn-primary">Save</button>
+      </div>
+    </form>
+  </section>
+  <section class="card">
+    <form method="post" action="/settings/notifications/email" class="card-body space-y-4" novalidate>
+      {{template "csrf" .CSRF}}
+      <div class="flex items-center justify-between gap-2">
+        <h2 class="text-base font-semibold">Email (SMTP)</h2>
+        {{if $e.Enabled}}<span class="badge-active">Enabled</span>{{else}}<span class="badge-cancelled">Disabled</span>{{end}}
+      </div>
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="enabled" value="1" class="h-4 w-4 rounded border-slate-300"{{if $e.Enabled}} checked{{end}}>Send reminders via email</label>
+      <div class="grid gap-4 sm:grid-cols-3">
+        <div class="sm:col-span-2"><label for="m-host" class="label">SMTP host</label><input id="m-host" name="host" class="input{{if $me.host}} input-error{{end}}" value="{{$e.Host}}" placeholder="smtp.example.com">{{template "field_error" $me.host}}</div>
+        <div><label for="m-port" class="label">Port</label><input id="m-port" name="port" type="number" class="input{{if $me.port}} input-error{{end}}" value="{{$e.Port}}">{{template "field_error" $me.port}}</div>
+      </div>
+      <p class="help">Port 465 uses implicit TLS; other ports require STARTTLS.</p>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div><label for="m-user" class="label">Username</label><input id="m-user" name="username" class="input" autocomplete="off" value="{{$e.Username}}"></div>
+        <div><label for="m-pass" class="label">Password</label><input id="m-pass" name="password" type="password" autocomplete="new-password" class="input" placeholder="{{if $e.HasPassword}}Saved — leave blank to keep{{end}}"></div>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div><label for="m-from" class="label">From address</label><input id="m-from" name="from" type="email" class="input{{if $me.from}} input-error{{end}}" value="{{$e.From}}">{{template "field_error" $me.from}}</div>
+        <div><label for="m-to" class="label">To address</label><input id="m-to" name="to" type="email" class="input{{if $me.to}} input-error{{end}}" value="{{$e.To}}">{{template "field_error" $me.to}}</div>
+      </div>
+      <div class="flex flex-wrap justify-end gap-2">
+        <button type="button" class="btn-secondary" hx-post="/settings/notifications/email/test" hx-swap="none" hx-disabled-elt="this">Send test<span class="htmx-indicator">…</span></button>
+        <button type="submit" class="btn-primary">Save</button>
+      </div>
+    </form>
+  </section>
+</div>
+{{end}}

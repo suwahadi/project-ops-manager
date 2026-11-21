@@ -279,3 +279,26 @@ func OpenBox(ctx context.Context, pool *pgxpool.Pool, key []byte) (*crypto.Box, 
 	}
 	return box, nil
 }
+
+func (s *Store) Time(ctx context.Context, key string) (*time.Time, error) {
+	raw, err := s.q.GetSetting(ctx, key)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get setting %s: %w", key, err)
+	}
+	var v string
+	if err := json.Unmarshal(raw, &v); err != nil || v == "" {
+		return nil, nil
+	}
+	t, err := time.Parse(time.RFC3339Nano, v)
+	if err != nil {
+		return nil, nil
+	}
+	return &t, nil
+}
+
+func (s *Store) SetTime(ctx context.Context, key string, t time.Time) error {
+	return s.set(ctx, s.q, key, t.UTC().Format(time.RFC3339Nano))
+}

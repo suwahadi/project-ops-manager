@@ -96,6 +96,16 @@ type Document struct {
 	CreatedAt    time.Time
 }
 
+type JobRun struct {
+	ID         int64
+	Job        string
+	StartedAt  time.Time
+	FinishedAt *time.Time
+	Status     string
+	Summary    string
+	Error      *string
+}
+
 type LoginAttempt struct {
 	ID          int64
 	Ip          netip.Addr
@@ -151,6 +161,7 @@ type ReminderLog struct {
 	Error          *string
 	SentAt         *time.Time
 	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 type Renewal struct {

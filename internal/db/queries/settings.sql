@@ -23,3 +23,6 @@ SELECT pg_try_advisory_lock($1);
 
 -- name: AdvisoryUnlock :one
 SELECT pg_advisory_unlock($1);
+
+-- name: GetSetting :one
+SELECT value FROM settings WHERE key = $1;

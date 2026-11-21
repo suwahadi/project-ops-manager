@@ -1,4 +1,10 @@
 {{define "content"}}
+{{range .Data.Banners}}
+<div class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100" role="alert">
+  <span class="flex items-center gap-2">{{icon "alert" "h-5 w-5"}}{{.Message}}</span>
+  <a href="{{.Href}}" class="font-medium underline">{{.Link}}</a>
+</div>
+{{end}}
 <div class="card"><div class="card-body">
   <p class="text-sm text-slate-600 dark:text-slate-400">Welcome to Ops Manager.</p>
 </div></div>

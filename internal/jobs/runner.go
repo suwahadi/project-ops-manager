@@ -92,11 +92,8 @@ func (r *Runner) loop(ctx context.Context, j Job) {
 
 func (r *Runner) runOnce(ctx context.Context, j Job) {
 	start := time.Now()
-	ran, err := db.WithAdvisoryLock(ctx, r.pool, j.LockKey, j.Run)
-	switch {
-	case err != nil && ctx.Err() == nil:
+	_, err := db.WithAdvisoryLock(ctx, r.pool, j.LockKey, j.Run)
+	if err != nil && ctx.Err() == nil {
 		r.logger.Error("job failed", "job", j.Name, "error", err, "duration_ms", time.Since(start).Milliseconds())
-	case !ran:
-		r.logger.Info("job skipped, already running elsewhere", "job", j.Name)
 	}
 }

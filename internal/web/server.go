@@ -40,6 +40,12 @@ func registerPrivate(mux *http.ServeMux, app *handlers.App) {
 	mux.HandleFunc("POST /settings/account/password", app.SettingsAccountPassword)
 	mux.HandleFunc("GET /settings/general", app.SettingsGeneral)
 	mux.HandleFunc("POST /settings/general", app.SettingsGeneralSave)
+	mux.HandleFunc("GET /settings/notifications", app.SettingsNotifications)
+	mux.HandleFunc("POST /settings/notifications/telegram", app.SettingsTelegramSave)
+	mux.HandleFunc("POST /settings/notifications/email", app.SettingsEmailSave)
+	mux.HandleFunc("POST /settings/notifications/telegram/test", app.SettingsTelegramTest)
+	mux.HandleFunc("POST /settings/notifications/email/test", app.SettingsEmailTest)
+
 	mux.HandleFunc("GET /search", app.Search)
 	mux.HandleFunc("POST /markdown/preview", app.MarkdownPreview)
 

@@ -46,6 +46,17 @@ func (q *Queries) GetSecret(ctx context.Context, key string) (Secret, error) {
 	return i, err
 }
 
+const getSetting = `-- name: GetSetting :one
+SELECT value FROM settings WHERE key = $1
+`
+
+func (q *Queries) GetSetting(ctx context.Context, key string) ([]byte, error) {
+	row := q.db.QueryRow(ctx, getSetting, key)
+	var value []byte
+	err := row.Scan(&value)
+	return value, err
+}
+
 const listSecrets = `-- name: ListSecrets :many
 SELECT key, ciphertext, nonce, key_version, updated_at FROM secrets ORDER BY key
 `
