@@ -65,6 +65,16 @@ Uploaded documents and screenshots are stored on the `uploads` volume at `/data/
 
 Migrations and seed data run automatically every time `app` starts, so restarting is always safe. Check that every service is healthy with `docker compose -f deploy/compose.yaml ps`.
 
+### Behind an existing Nginx (shared VPS)
+
+If the server already runs Nginx on ports 80 and 443 for other sites, use `deploy/compose.host-proxy.yaml` instead. It has no Caddy service and publishes the app only on `127.0.0.1:8090` (change it with `OPS_HOST_PORT` in `deploy/.env`). It also caps container memory for small servers: app 384 MB, database 512 MB, Chromium 640 MB.
+
+```sh
+docker compose -f deploy/compose.host-proxy.yaml up -d --build
+```
+
+Then add an Nginx server block for the hostname that proxies to `http://127.0.0.1:8090`, sets `X-Forwarded-For` and `X-Forwarded-Proto`, and allows request bodies up to `256m`. Issue its certificate with the tool the server already uses, for example Certbot. `OPS_DOMAIN` is not needed in this mode.
+
 ### Updating
 
 ```sh

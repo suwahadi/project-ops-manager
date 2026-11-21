@@ -4,3 +4,5 @@ internal/web/static/css/app.css
 /bin/
 *.test
 deploy/.env
+deploy/.env.*
+!deploy/.env.example
