@@ -28,9 +28,11 @@ import (
 	"github.com/suwahadi/project-ops-manager/internal/markdown"
 	"github.com/suwahadi/project-ops-manager/internal/notify/email"
 	"github.com/suwahadi/project-ops-manager/internal/notify/telegram"
+	"github.com/suwahadi/project-ops-manager/internal/project"
 	"github.com/suwahadi/project-ops-manager/internal/provider"
 	"github.com/suwahadi/project-ops-manager/internal/rdap"
 	"github.com/suwahadi/project-ops-manager/internal/reminder"
+	"github.com/suwahadi/project-ops-manager/internal/screenshot"
 	"github.com/suwahadi/project-ops-manager/internal/settings"
 	"github.com/suwahadi/project-ops-manager/internal/web"
 	"github.com/suwahadi/project-ops-manager/internal/web/handlers"
@@ -94,6 +96,9 @@ func serve(ctx context.Context, logger *slog.Logger) error {
 	emailSender := email.NewSender()
 	dispatcher := reminder.NewDispatcher(pool, store, tgSender, emailSender, cfg.BaseURL, logger, now)
 	rdapService := rdap.NewService(pool, rdap.NewClient(), logger, now)
+	guard := screenshot.NewGuard()
+	docStore := document.NewStore(cfg.UploadsDir, pool)
+	shotWorker := screenshot.NewWorker(pool, screenshot.NewCapturer(cfg.ChromiumURL, guard), docStore, logger, now, document.NewID)
 	settingsLocation := func() *time.Location {
 		all, err := store.Load(context.Background())
 		if err != nil {
@@ -118,9 +123,11 @@ func serve(ctx context.Context, logger *slog.Logger) error {
 		Credentials: credential.NewService(pool, box),
 		Markdown:    markdown.New(),
 		Queries:     sqlc.New(pool),
-		Documents:   document.NewStore(cfg.UploadsDir, pool),
+		Documents:   docStore,
 		Finance:     finance.NewService(pool),
 		RDAP:        rdapService,
+		Projects:    project.NewService(pool, now),
+		Guard:       guard,
 		Telegram:    tgSender,
 		Email:       emailSender,
 		Now:         now,
@@ -143,6 +150,13 @@ func serve(ctx context.Context, logger *slog.Logger) error {
 			Name: "reminder_retry", LockKey: db.LockReminders, Schedule: jobs.Every(time.Minute),
 			Run: func(ctx context.Context) error {
 				_, err := dispatcher.Deliver(ctx)
+				return err
+			},
+		},
+		jobs.Job{
+			Name: "screenshot_worker", LockKey: db.LockScreenshot, Schedule: jobs.Every(10 * time.Second), RunAtStart: true,
+			Run: func(ctx context.Context) error {
+				_, err := shotWorker.RunOnce(ctx)
 				return err
 			},
 		},

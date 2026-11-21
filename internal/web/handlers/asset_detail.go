@@ -25,6 +25,7 @@ var assetTabs = []assetTab{
 	{"documents", "Documents"},
 	{"notes", "Notes & Credentials"},
 	{"reminders", "Reminders"},
+	{"projects", "Projects"},
 }
 
 type customFieldView struct {
@@ -107,6 +108,12 @@ func (a *App) loadAssetTabExtra(r *http.Request, d *assetDetailData) error {
 			return err
 		}
 		d.Extra = own
+	case "projects":
+		rows, err := a.Projects.ByAsset(r.Context(), d.Asset.ID)
+		if err != nil {
+			return err
+		}
+		d.Extra = rows
 	case "reminders":
 		extra, err := a.reminderTab(r, d.Asset)
 		if err != nil {

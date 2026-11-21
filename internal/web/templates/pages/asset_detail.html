@@ -31,6 +31,7 @@
 {{if eq $d.Tab "notes"}}{{template "tab_notes" .}}{{end}}
 {{if eq $d.Tab "reminders"}}{{template "tab_reminders" .}}{{end}}
 {{if eq $d.Tab "renewals"}}{{template "tab_renewals" .}}{{end}}
+{{if eq $d.Tab "projects"}}{{template "tab_projects" .}}{{end}}
 {{if eq $d.Tab "documents"}}{{template "tab_documents" .}}{{end}}
 <dialog id="renew-dialog" class="modal" aria-labelledby="renew-title">
   {{template "renew_form" (dict "Data" $d.Renew "CSRF" .CSRF)}}
@@ -333,4 +334,15 @@
     {{end}}
   </section>
 </div>
+{{end}}
+
+{{define "tab_projects"}}
+{{$d := .Data}}
+{{if not $d.Extra}}
+  {{template "empty_state" (dict "Message" "This asset is not linked to any project." "Href" "/projects/new" "Action" "Add project")}}
+{{else}}
+<ul class="card divide-y divide-slate-100 dark:divide-slate-800">
+  {{range $d.Extra}}<li><a href="/projects/{{.ID}}" class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50"><span class="font-medium">{{.Name}}</span><span class="flex items-center gap-2 text-sm">{{template "owner_badge" .ClientName}}<span class="text-slate-500 dark:text-slate-400">{{deref .Url}}</span></span></a></li>{{end}}
+</ul>
+{{end}}
 {{end}}

@@ -64,3 +64,5 @@
 {{end}}
 
 {{define "rdap_badge"}}{{if not .}}<span class="badge-outline">Not checked yet</span>{{else if eq (deref .) "error"}}<span class="badge-outline-error">Error</span>{{else if eq (deref .) "updated"}}<span class="badge-outline">Updated</span>{{else if eq (deref .) "unchanged"}}<span class="badge-outline">Unchanged</span>{{else}}<span class="badge-outline">Unsupported</span>{{end}}{{end}}
+
+{{define "job_badge"}}{{if .}}{{if eq (deref .) "pending"}}<span class="badge-outline">Capturing</span>{{else if eq (deref .) "failed"}}<span class="badge-outline-error">Failed</span>{{end}}{{end}}{{end}}

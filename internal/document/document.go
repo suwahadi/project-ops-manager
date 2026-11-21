@@ -63,6 +63,8 @@ func Sniff(data []byte) (string, error) {
 	return "", ErrUnsupported
 }
 
+func NewID() (string, error) { return newUUID() }
+
 func newUUID() (string, error) {
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {

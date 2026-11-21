@@ -73,6 +73,17 @@ func registerPrivate(mux *http.ServeMux, app *handlers.App) {
 	mux.HandleFunc("POST /assets/{id}/credentials/{cid}/reveal", app.CredentialReveal)
 	mux.HandleFunc("POST /assets/{id}/credentials/{cid}/copy", app.CredentialCopy)
 
+	mux.HandleFunc("GET /projects", app.ProjectList)
+	mux.HandleFunc("GET /projects/new", app.ProjectNew)
+	mux.HandleFunc("POST /projects", app.ProjectCreate)
+	mux.HandleFunc("GET /projects/{id}", app.ProjectShow)
+	mux.HandleFunc("GET /projects/{id}/edit", app.ProjectEdit)
+	mux.HandleFunc("POST /projects/{id}", app.ProjectUpdate)
+	mux.HandleFunc("POST /projects/{id}/delete", app.ProjectDelete)
+	mux.HandleFunc("GET /projects/{id}/screenshot", app.ProjectScreenshotImage)
+	mux.HandleFunc("GET /projects/{id}/screenshot/status", app.ProjectScreenshotStatus)
+	mux.HandleFunc("POST /projects/{id}/screenshot", app.ProjectScreenshotRefresh)
+
 	mux.HandleFunc("GET /clients", app.ClientList)
 	mux.HandleFunc("GET /clients/new", app.ClientNew)
 	mux.HandleFunc("POST /clients", app.ClientCreate)
