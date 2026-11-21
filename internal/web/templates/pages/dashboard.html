@@ -1,11 +1,100 @@
 {{define "content"}}
-{{range .Data.Banners}}
+{{$d := .Data}}
+{{range $d.Banners}}
 <div class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100" role="alert">
   <span class="flex items-center gap-2">{{icon "alert" "h-5 w-5"}}{{.Message}}</span>
   <a href="{{.Href}}" class="font-medium underline">{{.Link}}</a>
 </div>
 {{end}}
-<div class="card"><div class="card-body">
-  <p class="text-sm text-slate-600 dark:text-slate-400">Welcome to Ops Manager.</p>
+
+{{if eq $d.TotalAssets 0}}
+<div class="card mb-6"><div class="card-body flex flex-col items-center gap-3 py-12 text-center">
+  <p class="text-base font-medium">Welcome to Ops Manager</p>
+  <p class="max-w-md text-sm text-slate-600 dark:text-slate-400">Track every domain, hosting plan, VPS, certificate and license with an expiration date, and get reminded before it expires.</p>
+  <a href="/assets/new" class="btn-primary">{{icon "plus"}}Add asset</a>
 </div></div>
+{{end}}
+
+<section class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Assets per status">
+  {{range $d.Statuses}}
+  <a href="/assets?status={{.Status}}" class="card card-body flex flex-col gap-2 hover:border-indigo-300 dark:hover:border-indigo-700">
+    <span>{{template "status_badge" .Status}}</span>
+    <span class="text-3xl font-semibold tabular-nums">{{.Count}}</span>
+  </a>
+  {{end}}
+</section>
+
+<div class="mb-6 grid gap-6 lg:grid-cols-2">
+  {{template "dash_finance" $d.Month}}
+  {{template "dash_finance" $d.Year}}
+</div>
+
+<div class="grid items-start gap-6 xl:grid-cols-3">
+  <section class="card xl:col-span-2"><div class="card-body">
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <h2 class="text-base font-semibold">Upcoming renewals</h2>
+      <span class="text-sm text-slate-500 dark:text-slate-400">Expired and next 30 days</span>
+    </div>
+    {{if not $d.Upcoming}}
+      <p class="py-6 text-center text-sm text-slate-500 dark:text-slate-400">Nothing expires in the next 30 days.{{if eq $d.TotalAssets 0}} <a href="/assets/new" class="text-indigo-700 underline dark:text-indigo-300">Add asset</a>{{end}}</p>
+    {{else}}
+    <ul class="divide-y divide-slate-100 dark:divide-slate-800">
+      {{range $d.Upcoming}}
+      <li><a href="/assets/{{.ID}}" class="flex flex-wrap items-center justify-between gap-2 py-3 hover:opacity-80">
+        <span class="flex min-w-0 flex-wrap items-center gap-2">
+          <span class="font-medium">{{.Name}}</span>
+          {{template "type_badge" (dict "Name" .TypeName "Icon" .TypeIcon)}}
+          {{template "owner_badge" .ClientName}}
+        </span>
+        <span class="flex flex-wrap items-center gap-2 text-sm">
+          <span class="text-slate-500 dark:text-slate-400">{{date .ExpirationDate}}</span>
+          {{template "status_badge" .Status}}
+          {{template "countdown_badge" .}}
+        </span>
+      </a></li>
+      {{end}}
+    </ul>
+    {{end}}
+  </div></section>
+
+  <section class="card"><div class="card-body">
+    <h2 class="mb-3 text-base font-semibold">Assets per type</h2>
+    <ul class="divide-y divide-slate-100 dark:divide-slate-800">
+      {{range $d.Types}}
+      <li><a href="/assets?type={{.ID}}" class="flex items-center justify-between gap-2 py-2.5 hover:opacity-80">
+        {{template "type_badge" (dict "Name" .Name "Icon" .Icon)}}<span class="font-semibold tabular-nums">{{.AssetCount}}</span>
+      </a></li>
+      {{end}}
+    </ul>
+  </div></section>
+</div>
+
+{{end}}
+
+{{define "dash_finance"}}
+<section class="card"><div class="card-body">
+  <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+    <h2 class="text-base font-semibold">{{.Label}}</h2>
+    <a href="{{.Href}}" class="text-sm text-indigo-700 underline dark:text-indigo-300">Finance</a>
+  </div>
+  {{if and (not .Actual) (not .Projected)}}
+    <p class="text-sm text-slate-500 dark:text-slate-400">No renewals paid or due in this period.</p>
+  {{else}}
+  <div class="space-y-3">
+    {{range .Actual}}{{template "dash_line" (dict "Kind" "Actual" "Line" .)}}{{end}}
+    {{range .Projected}}{{template "dash_line" (dict "Kind" "Projected" "Line" .)}}{{end}}
+  </div>
+  {{end}}
+</div></section>
+{{end}}
+
+{{define "dash_line"}}{{$l := .Line}}
+<div class="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+  <div class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{.Kind}} · {{$l.Currency}}</div>
+  <dl class="grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
+    <div><dt class="text-xs text-slate-500 dark:text-slate-400">Cost</dt><dd class="whitespace-nowrap font-medium tabular-nums">{{money $l.Cost $l.Currency}}</dd></div>
+    <div><dt class="text-xs text-slate-500 dark:text-slate-400">Revenue</dt><dd class="whitespace-nowrap font-medium tabular-nums">{{money $l.Revenue $l.Currency}}</dd></div>
+    <div><dt class="text-xs text-slate-500 dark:text-slate-400">Margin</dt><dd class="whitespace-nowrap font-semibold tabular-nums">{{money $l.Margin $l.Currency}}</dd></div>
+  </dl>
+</div>
 {{end}}
