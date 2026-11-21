@@ -1,0 +1,13 @@
+{{define "document"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{.Title}}</title>
+<style>{{.CSS}}</style>
+<style>@page { size: A4; margin: 0; }</style>
+</head>
+<body class="inv-print">
+{{template "invoice_sheet" .Sheet}}
+</body>
+</html>
+{{end}}

@@ -410,6 +410,13 @@ docker run --rm -v opsmanager_uploads:/data -v /var/backups/opsmanager:/backup d
 - **RDAP sync** runs daily at 03:00 and overwrites a domain's expiration date when the registry reports a different one.
   - Registries often extend gTLD dates before the registrar is paid, so a domain can look renewed while it is not (an accepted risk, PRD §13).
 - **Screenshots** are 1440×900 WebP captures. Private, loopback and link-local addresses are refused.
+- **Invoices** (menu **Invoices**, or **Create invoice** on an asset or client):
+  - Fill **Settings → Invoice** first: company name, website, number prefix and the default note (for example bank details).
+  - Numbers are the prefix plus 8 random characters (`INV-DEV-HK87CZ02`). Press the refresh button for a new one, or type your own; numbers must be unique.
+  - Each row has a bold item title, a multi-line description, quantity, rate and tax %. Totals are recalculated on the server when you save.
+  - **Mark paid** asks for the payment date, adds a green PAID ribbon and sets Amount Due to zero. **Mark unpaid** reverses it.
+  - **Download PDF** prints an A4 PDF through the Chromium container and names it after the invoice number. If Chromium is down, the page shows an error instead.
+  - Invoices are not included in the Finance page totals.
 
 ## Development
 

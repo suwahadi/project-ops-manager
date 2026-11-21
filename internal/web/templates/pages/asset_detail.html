@@ -10,6 +10,7 @@
   </div>
   <div class="page-actions">
     <button type="button" class="btn-primary full" data-confirm-open="renew-dialog">Mark as renewed</button>
+    <a href="/invoices/new?asset={{$a.ID}}" class="btn-secondary">Create invoice</a>
     <a href="/assets/{{$a.ID}}/edit" class="btn-secondary">Edit</a>
     <a href="/assets/new?from={{$a.ID}}" class="btn-secondary">Duplicate</a>
     {{if $a.CancelledAt}}

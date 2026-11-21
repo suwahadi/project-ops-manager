@@ -4,6 +4,7 @@
 <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:justify-end">
   <div class="page-actions">
     <a href="/assets/new?owner={{$c.ID}}" class="btn-primary full">{{icon "plus"}}Add asset</a>
+    <a href="/invoices/new?client={{$c.ID}}" class="btn-secondary">Create invoice</a>
     <a href="/clients/{{$c.ID}}/edit" class="btn-secondary">Edit</a>
     {{template "confirm_button" (dict "ID" "delete-client" "Class" "btn-danger" "Label" "Delete" "Action" (print "/clients/" $c.ID "/delete") "CSRF" .CSRF "Title" "Delete this client?" "Body" "Clients with assets or projects cannot be deleted." "Confirm" "Delete client" "Danger" true)}}
   </div>

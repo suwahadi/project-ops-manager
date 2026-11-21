@@ -23,6 +23,7 @@ var settingsTabs = []settingsTab{
 	{"account", "Account", "/settings"},
 	{"general", "General", "/settings/general"},
 	{"notifications", "Notifications", "/settings/notifications"},
+	{"invoice", "Invoice", "/settings/invoice"},
 	{"types", "Asset types", "/settings/types"},
 	{"providers", "Providers", "/settings/providers"},
 }

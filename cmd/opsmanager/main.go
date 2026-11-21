@@ -24,6 +24,7 @@ import (
 	"github.com/suwahadi/project-ops-manager/internal/db/sqlc"
 	"github.com/suwahadi/project-ops-manager/internal/document"
 	"github.com/suwahadi/project-ops-manager/internal/finance"
+	"github.com/suwahadi/project-ops-manager/internal/invoice"
 	"github.com/suwahadi/project-ops-manager/internal/jobs"
 	"github.com/suwahadi/project-ops-manager/internal/markdown"
 	"github.com/suwahadi/project-ops-manager/internal/notify/email"
@@ -98,7 +99,8 @@ func serve(ctx context.Context, logger *slog.Logger) error {
 	rdapService := rdap.NewService(pool, rdap.NewClient(), logger, now)
 	guard := screenshot.NewGuard()
 	docStore := document.NewStore(cfg.UploadsDir, pool)
-	shotWorker := screenshot.NewWorker(pool, screenshot.NewCapturer(cfg.ChromiumURL, guard), docStore, logger, now, document.NewID)
+	capturer := screenshot.NewCapturer(cfg.ChromiumURL, guard)
+	shotWorker := screenshot.NewWorker(pool, capturer, docStore, logger, now, document.NewID)
 	settingsLocation := func() *time.Location {
 		all, err := store.Load(context.Background())
 		if err != nil {
@@ -128,6 +130,8 @@ func serve(ctx context.Context, logger *slog.Logger) error {
 		RDAP:        rdapService,
 		Projects:    project.NewService(pool, now),
 		Guard:       guard,
+		Invoices:    invoice.NewService(pool),
+		PDF:         capturer,
 		Telegram:    tgSender,
 		Email:       emailSender,
 		Now:         now,

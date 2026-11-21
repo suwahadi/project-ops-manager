@@ -61,6 +61,18 @@ func (r *Renderer) Fragment(w http.ResponseWriter, status int, page, name string
 	return r.execute(w, status, page, name, data)
 }
 
+func (r *Renderer) HTML(page, name string, data any) ([]byte, error) {
+	t, ok := r.pages[page]
+	if !ok {
+		return nil, fmt.Errorf("unknown page %q", page)
+	}
+	var buf bytes.Buffer
+	if err := t.ExecuteTemplate(&buf, name, data); err != nil {
+		return nil, fmt.Errorf("render %s/%s: %w", page, name, err)
+	}
+	return buf.Bytes(), nil
+}
+
 func (r *Renderer) execute(w http.ResponseWriter, status int, page, name string, data any) error {
 	t, ok := r.pages[page]
 	if !ok {

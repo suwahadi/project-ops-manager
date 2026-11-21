@@ -1,0 +1,87 @@
+{{define "content"}}
+{{$d := .Data}}
+<form id="invoice-filters" method="get" action="/invoices" class="card mb-4"
+      hx-get="/invoices" hx-target="#invoice-results" hx-push-url="true"
+      hx-trigger="change, input changed delay:300ms from:#filter-q, submit">
+  <div class="card-body">
+    {{template "filter_search_row" (dict "Label" "Search invoices" "Placeholder" "Search invoices" "Query" $d.Filter.Query "Active" $d.Filter.Active "NewHref" "/invoices/new" "NewLabel" "New invoice")}}
+    <div id="filter-panel" class="mt-4 hidden md:block"><div class="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+      <div>
+        <label for="filter-status" class="label">Status</label>
+        <select data-combobox id="filter-status" name="status" class="input">
+          {{range $d.StatusOptions}}<option value="{{.Value}}"{{if eq .Value $d.Filter.Status}} selected{{end}}>{{.Label}}</option>{{end}}
+        </select>
+      </div>
+      <div>
+        <label for="filter-client" class="label">Client</label>
+        <select data-combobox id="filter-client" name="client" class="input">
+          <option value="">All clients</option>
+          <option value="none"{{if eq $d.Filter.Client "none"}} selected{{end}}>No client</option>
+          {{range $d.Clients}}<option value="{{.ID}}"{{if eq .ID $d.Filter.Client}} selected{{end}}>{{.Name}}</option>{{end}}
+        </select>
+      </div>
+      <div>
+        <label for="filter-sort" class="label">Sort</label>
+        <select data-combobox id="filter-sort" name="sort" class="input">
+          {{range $d.SortOptions}}<option value="{{.Value}}"{{if eq .Value $d.Filter.Sort}} selected{{end}}>{{.Label}}</option>{{end}}
+        </select>
+      </div>
+      {{template "filter_reset" "/invoices"}}
+    </div></div>
+  </div>
+</form>
+{{template "invoice_results" .}}
+{{end}}
+
+{{define "invoice_status"}}{{if .IsPaid}}<span class="badge-active">Paid</span>{{else if .Overdue}}<span class="badge-expired">Overdue</span>{{else}}<span class="badge-expiring">Unpaid</span>{{end}}{{end}}
+
+{{define "invoice_results"}}
+{{$d := .Data}}
+<div id="invoice-results">
+  {{if $d.Totals}}
+  <div class="mb-4 grid gap-3 sm:grid-cols-2">
+    {{range $d.Totals}}
+    <div class="card"><div class="card-body grid grid-cols-2 gap-3">
+      <div><div class="stat-label">Outstanding {{.Currency}}</div><div class="stat-value text-base text-amber-800 dark:text-amber-200">{{money .Unpaid .Currency}}</div>{{if .Overdue}}<div class="mt-1 text-xs text-red-700 dark:text-red-400">{{.Overdue}} overdue</div>{{end}}</div>
+      <div><div class="stat-label">Paid {{.Currency}}</div><div class="stat-value text-base text-green-800 dark:text-green-200">{{money .Paid .Currency}}</div></div>
+    </div></div>
+    {{end}}
+  </div>
+  {{end}}
+  {{if not $d.Items}}
+    {{if $d.Filter.Filtered}}
+      {{template "filter_empty" (dict "Message" "No invoices match these filters." "Href" "/invoices")}}
+    {{else}}
+      {{template "empty_state" (dict "Message" "No invoices yet." "Href" "/invoices/new" "Action" "New invoice")}}
+    {{end}}
+  {{else}}
+  <p class="mb-3 text-sm text-slate-500 dark:text-slate-400">{{len $d.Items}} {{plural (len $d.Items) "invoice" "invoices"}}</p>
+  <div class="card hidden overflow-x-auto md:block">
+    <table class="table">
+      <thead><tr><th>Number</th><th>Bill To</th><th>Invoice date</th><th>Due date</th><th class="text-right">Total</th><th>Status</th></tr></thead>
+      <tbody>
+        {{range $d.Items}}
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+          <td class="whitespace-nowrap font-medium"><a href="/invoices/{{.ID}}" class="hover:underline">{{.Number}}</a></td>
+          <td>{{.BillTo}}</td>
+          <td class="whitespace-nowrap">{{date .InvoiceDate}}</td>
+          <td class="whitespace-nowrap">{{datePtr .DueDate}}</td>
+          <td class="whitespace-nowrap text-right tabular-nums">{{money .Totals.Total .Currency}}</td>
+          <td>{{template "invoice_status" .}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+  <ul class="card divide-y divide-slate-100 md:hidden dark:divide-slate-800">
+    {{range $d.Items}}
+    <li><a href="/invoices/{{.ID}}" class="block space-y-1.5 px-4 py-3 active:bg-slate-50 dark:active:bg-slate-800/50">
+      <div class="flex items-start justify-between gap-2"><span class="font-medium">{{.Number}}</span>{{template "invoice_status" .}}</div>
+      <div class="truncate text-sm text-slate-600 dark:text-slate-300">{{.BillTo}}</div>
+      <div class="flex items-center justify-between gap-2 text-sm text-slate-500 dark:text-slate-400"><span>{{date .InvoiceDate}}{{with .DueDate}} · due {{date .}}{{end}}</span><span class="tabular-nums text-slate-700 dark:text-slate-200">{{money .Totals.Total .Currency}}</span></div>
+    </a></li>
+    {{end}}
+  </ul>
+  {{end}}
+</div>
+{{end}}

@@ -97,6 +97,21 @@ func registerPrivate(mux *http.ServeMux, app *handlers.App) {
 	mux.HandleFunc("POST /clients/{id}/projects", app.ClientLinkProjects)
 	mux.HandleFunc("POST /clients/{id}/projects/{item}/unlink", app.ClientUnlinkProject)
 
+	mux.HandleFunc("GET /settings/invoice", app.SettingsInvoice)
+	mux.HandleFunc("POST /settings/invoice", app.SettingsInvoiceSave)
+
+	mux.HandleFunc("GET /invoices", app.InvoiceList)
+	mux.HandleFunc("GET /invoices/new", app.InvoiceNew)
+	mux.HandleFunc("POST /invoices", app.InvoiceCreate)
+	mux.HandleFunc("GET /invoices/{id}", app.InvoiceShow)
+	mux.HandleFunc("GET /invoices/{id}/edit", app.InvoiceEdit)
+	mux.HandleFunc("POST /invoices/{id}", app.InvoiceUpdate)
+	mux.HandleFunc("GET /invoices/{id}/pdf", app.InvoicePDF)
+	mux.HandleFunc("POST /invoices/{id}/paid", app.InvoiceMarkPaid)
+	mux.HandleFunc("POST /invoices/{id}/unpaid", app.InvoiceMarkUnpaid)
+	mux.HandleFunc("POST /invoices/{id}/duplicate", app.InvoiceDuplicate)
+	mux.HandleFunc("POST /invoices/{id}/delete", app.InvoiceDelete)
+
 	mux.HandleFunc("GET /settings/providers", app.ProviderList)
 	mux.HandleFunc("POST /settings/providers", app.ProviderCreate)
 	mux.HandleFunc("GET /settings/providers/{id}", app.ProviderEdit)

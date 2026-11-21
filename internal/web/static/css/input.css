@@ -276,3 +276,204 @@
     @apply inline-flex;
   }
 }
+
+@layer components {
+  .inv {
+    position: relative;
+    overflow: hidden;
+    background: #fff;
+    color: #1f2933;
+    font-family: "Helvetica Neue", Helvetica, Arial, "Liberation Sans", "DejaVu Sans", sans-serif;
+    font-size: 13px;
+    line-height: 1.45;
+    padding: 44px 40px;
+    color-scheme: light;
+  }
+  .inv-ribbon {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 160px;
+    height: 160px;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .inv-ribbon span {
+    position: absolute;
+    top: 38px;
+    right: -52px;
+    width: 220px;
+    transform: rotate(45deg);
+    background: #16a34a;
+    color: #fff;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 7px 0;
+    box-shadow: 0 2px 6px rgb(0 0 0 / 0.18);
+  }
+  .inv-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+  }
+  .inv-company-name {
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .inv-muted {
+    color: #52606d;
+  }
+  .inv-heading {
+    text-align: right;
+    padding-right: 36px;
+  }
+  .inv-title {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+  }
+  .inv-number {
+    margin-top: 4px;
+    font-weight: 700;
+    color: #3e4c59;
+  }
+  .inv-state {
+    margin-top: 2px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  .inv-state-unpaid {
+    color: #dc2626;
+  }
+  .inv-state-paid {
+    color: #15803d;
+  }
+  .inv-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+    margin-top: 40px;
+  }
+  .inv-label {
+    font-weight: 700;
+  }
+  .inv-billto {
+    margin-top: 2px;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: pre-line;
+  }
+  .inv-dates {
+    display: grid;
+    gap: 6px;
+    text-align: right;
+  }
+  .inv-dates dt {
+    color: #52606d;
+  }
+  .inv-dates dd {
+    font-weight: 600;
+  }
+  .inv-table {
+    width: 100%;
+    margin-top: 28px;
+    border-collapse: collapse;
+  }
+  .inv-table th {
+    background: #323a45;
+    color: #fff;
+    font-weight: 500;
+    text-align: left;
+    padding: 8px 10px;
+  }
+  .inv-table td {
+    padding: 10px;
+    vertical-align: top;
+    border-bottom: 1px solid #e4e7eb;
+  }
+  .inv-table .inv-num {
+    text-align: right;
+    white-space: nowrap;
+  }
+  .inv-table .inv-col-n {
+    width: 28px;
+  }
+  .inv-item-title {
+    font-weight: 700;
+  }
+  .inv-item-desc {
+    margin-top: 2px;
+    color: #52606d;
+    white-space: pre-line;
+  }
+  .inv-summary {
+    margin: 24px 0 0 auto;
+    min-width: 300px;
+    border-collapse: collapse;
+  }
+  .inv-summary th {
+    padding: 7px 16px;
+    text-align: right;
+    font-weight: 700;
+  }
+  .inv-summary td {
+    padding: 7px 10px;
+    text-align: right;
+    white-space: nowrap;
+  }
+  .inv-summary .inv-shade {
+    background: #f0f2f4;
+  }
+  .inv-summary .inv-due td {
+    font-weight: 700;
+  }
+  .inv-paid-amount {
+    color: #15803d;
+  }
+  .inv-note {
+    margin-top: 40px;
+  }
+  .inv-note-text {
+    margin-top: 4px;
+    white-space: pre-line;
+  }
+  .inv-print {
+    margin: 0;
+    background: #fff;
+  }
+  .inv-print .inv {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 18mm 16mm;
+  }
+  @media (max-width: 639px) {
+    .inv-screen .inv {
+      font-size: 11px;
+      padding: 24px 16px;
+    }
+    .inv-screen .inv-title {
+      font-size: 20px;
+    }
+    .inv-screen .inv-heading {
+      padding-right: 28px;
+    }
+    .inv-screen .inv-table th,
+    .inv-screen .inv-table td {
+      padding: 6px 4px;
+    }
+    .inv-screen .inv-summary {
+      min-width: 0;
+      width: 100%;
+    }
+    .inv-screen .inv-ribbon {
+      transform: scale(0.75);
+      transform-origin: top right;
+    }
+  }
+}

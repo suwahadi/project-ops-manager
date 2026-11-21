@@ -1,0 +1,127 @@
+{{define "content"}}
+{{$d := .Data}}{{$f := $d.Form}}{{$e := $d.Errors}}
+{{template "back_link" (dict "Href" (or (and $d.IsEdit (print "/invoices/" $d.ID)) "/invoices") "Label" (or (and $d.IsEdit "Invoice") "Invoices"))}}
+<form method="post" action="{{if $d.IsEdit}}/invoices/{{$d.ID}}{{else}}/invoices{{end}}" class="space-y-4 sm:space-y-6" novalidate data-invoice-form>
+  {{template "csrf" .CSRF}}
+  <input type="hidden" name="asset_id" value="{{$f.AssetID}}">
+  <section class="card"><div class="card-body">
+    <h2 class="card-title mb-4">Invoice</h2>
+    <div class="form-grid">
+      <div>
+        <label for="number" class="label">Invoice number</label>
+        <div class="flex gap-2">
+          <input id="number" name="number" required autocomplete="off" class="input uppercase{{if $e.number}} input-error{{end}}" value="{{$f.Number}}">
+          <button type="button" class="btn-secondary btn-icon" data-invoice-generate data-prefix="{{$d.Prefix}}" aria-label="Generate a new number" title="Generate a new number">{{icon "refresh"}}</button>
+        </div>
+        {{template "field_error" $e.number}}
+      </div>
+      <div>
+        <label for="status" class="label">Status</label>
+        <select id="status" name="status" data-combobox class="input">
+          <option value="unpaid"{{if ne $f.Status "paid"}} selected{{end}}>Unpaid</option>
+          <option value="paid"{{if eq $f.Status "paid"}} selected{{end}}>Paid</option>
+        </select>
+      </div>
+      <div>
+        <label for="client_id" class="label">Client</label>
+        <select id="client_id" name="client_id" data-combobox class="input{{if $e.client_id}} input-error{{end}}" data-invoice-client>
+          <option value="">No client</option>
+          {{range $d.Clients}}<option value="{{.ID}}"{{if eq .ID $f.ClientID}} selected{{end}}>{{.Name}}</option>{{end}}
+        </select>
+        {{template "field_error" $e.client_id}}
+      </div>
+      <div>
+        <label for="bill_to" class="label">Bill To</label>
+        <input id="bill_to" name="bill_to" required class="input{{if $e.bill_to}} input-error{{end}}" value="{{$f.BillTo}}" data-invoice-billto>
+        {{template "field_error" $e.bill_to}}
+      </div>
+      <div>
+        <label for="invoice_date" class="label">Invoice date</label>
+        <input id="invoice_date" name="invoice_date" type="date" required class="input{{if $e.invoice_date}} input-error{{end}}" value="{{$f.InvoiceDate}}">
+        {{template "field_error" $e.invoice_date}}
+      </div>
+      <div>
+        <label for="due_date" class="label">Due date</label>
+        <input id="due_date" name="due_date" type="date" class="input{{if $e.due_date}} input-error{{end}}" value="{{$f.DueDate}}">
+        {{template "field_error" $e.due_date}}
+      </div>
+      <div>
+        <label for="currency" class="label">Currency</label>
+        <select id="currency" name="currency" data-combobox class="input{{if $e.currency}} input-error{{end}}" data-invoice-currency>
+          {{range $d.Currencies}}<option value="{{.}}"{{if eq (print .) $f.Currency}} selected{{end}}>{{.}}</option>{{end}}
+        </select>
+        {{template "field_error" $e.currency}}
+      </div>
+      <div data-show-if="status:paid"{{if ne $f.Status "paid"}} hidden{{end}}>
+        <label for="paid_date" class="label">Paid date</label>
+        <input id="paid_date" name="paid_date" type="date" class="input{{if $e.paid_date}} input-error{{end}}" value="{{$f.PaidDate}}">
+        {{template "field_error" $e.paid_date}}
+      </div>
+    </div>
+  </div></section>
+
+  <section class="card"><div class="card-body">
+    <div class="card-header">
+      <h2 class="card-title">Items</h2>
+      <button type="button" class="btn-secondary btn-sm" data-invoice-add>{{icon "plus" "h-4 w-4"}}Add row</button>
+    </div>
+    {{template "field_error" $e.items}}
+    <ol class="space-y-3" data-invoice-rows>
+      {{range $i, $it := $f.Items}}{{template "invoice_item_row" (dict "Item" $it "Index" $i "Data" $d)}}{{end}}
+    </ol>
+    <template data-invoice-template>{{template "invoice_item_row" (dict "Item" (dict "Quantity" "1" "Tax" "0") "Index" -1 "Data" $d)}}</template>
+    <dl class="mt-4 ml-auto grid max-w-xs grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+      <dt class="text-slate-500 dark:text-slate-400">Sub Total</dt><dd class="text-right tabular-nums" data-invoice-subtotal>—</dd>
+      <dt class="text-slate-500 dark:text-slate-400">Tax</dt><dd class="text-right tabular-nums" data-invoice-tax>—</dd>
+      <dt class="font-semibold">Total</dt><dd class="text-right font-semibold tabular-nums" data-invoice-total>—</dd>
+    </dl>
+  </div></section>
+
+  <section class="card"><div class="card-body">
+    <label for="note" class="card-title mb-4 block">Note</label>
+    <textarea id="note" name="note" rows="4" class="input">{{$f.Note}}</textarea>
+  </div></section>
+
+  <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+    <a href="{{if $d.IsEdit}}/invoices/{{$d.ID}}{{else}}/invoices{{end}}" class="btn-secondary">Cancel</a>
+    <button type="submit" class="btn-primary">{{if $d.IsEdit}}Save changes{{else}}Create invoice{{end}}</button>
+  </div>
+</form>
+{{end}}
+
+{{define "invoice_item_row"}}{{$it := .Item}}{{$i := .Index}}{{$d := .Data}}
+<li class="rounded-lg border border-slate-200 p-3 dark:border-slate-700" data-invoice-row>
+  <div class="mb-3 flex items-center justify-between gap-2">
+    <span class="text-sm font-semibold text-slate-600 dark:text-slate-300">Row <span data-invoice-row-number>{{add $i 1}}</span></span>
+    <div class="flex items-center gap-1">
+      <button type="button" class="btn-ghost btn-sm btn-icon h-8 w-8" data-invoice-up aria-label="Move up">{{icon "arrow-up"}}</button>
+      <button type="button" class="btn-ghost btn-sm btn-icon h-8 w-8" data-invoice-down aria-label="Move down">{{icon "arrow-down"}}</button>
+      <button type="button" class="btn-ghost btn-sm btn-icon h-8 w-8 text-red-700 dark:text-red-400" data-invoice-remove aria-label="Remove row">{{icon "trash"}}</button>
+    </div>
+  </div>
+  <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <label class="col-span-2 block sm:col-span-4"><span class="label">Item</span>
+      <input name="item_title" class="input{{if $d.ItemError "item_title" $i}} input-error{{end}}" value="{{$it.Title}}" data-invoice-title>
+      {{template "field_error" ($d.ItemError "item_title" $i)}}
+    </label>
+    <label class="col-span-2 block sm:col-span-4"><span class="label">Description</span>
+      <textarea name="item_description" rows="2" class="input">{{$it.Description}}</textarea>
+    </label>
+    <label class="block"><span class="label">Qty</span>
+      <input name="item_quantity" inputmode="decimal" class="input{{if $d.ItemError "item_quantity" $i}} input-error{{end}}" value="{{$it.Quantity}}" data-invoice-qty>
+      {{template "field_error" ($d.ItemError "item_quantity" $i)}}
+    </label>
+    <label class="block"><span class="label">Rate</span>
+      <input name="item_rate" inputmode="decimal" class="input{{if $d.ItemError "item_rate" $i}} input-error{{end}}" value="{{$it.Rate}}" data-invoice-rate>
+      {{template "field_error" ($d.ItemError "item_rate" $i)}}
+    </label>
+    <label class="block"><span class="label">Tax %</span>
+      <input name="item_tax" inputmode="decimal" class="input{{if $d.ItemError "item_tax" $i}} input-error{{end}}" value="{{$it.Tax}}" data-invoice-taxrate>
+      {{template "field_error" ($d.ItemError "item_tax" $i)}}
+    </label>
+    <div><span class="label">Amount</span>
+      <div class="flex h-10 items-center justify-end rounded-lg bg-slate-50 px-3 text-sm font-medium tabular-nums dark:bg-slate-800" data-invoice-amount>—</div>
+    </div>
+  </div>
+</li>
+{{end}}

@@ -1,0 +1,30 @@
+{{define "content"}}
+{{template "settings_tabs" .Data}}
+{{$f := .Data.Body}}{{$s := $f.Settings}}
+<section class="card max-w-2xl">
+  <form method="post" action="/settings/invoice" class="card-body" novalidate>
+    {{template "csrf" .CSRF}}
+    <div class="form-grid">
+      <div>
+        <label for="company_name" class="label">Company name</label>
+        <input id="company_name" name="company_name" required class="input{{if $f.Errors.company_name}} input-error{{end}}" value="{{$s.CompanyName}}">
+        {{template "field_error" $f.Errors.company_name}}
+      </div>
+      <div>
+        <label for="company_url" class="label">Website URL</label>
+        <input id="company_url" name="company_url" class="input" value="{{$s.CompanyURL}}">
+      </div>
+      <div>
+        <label for="number_prefix" class="label">Number prefix</label>
+        <input id="number_prefix" name="number_prefix" class="input uppercase{{if $f.Errors.number_prefix}} input-error{{end}}" value="{{$s.NumberPrefix}}">
+        {{template "field_error" $f.Errors.number_prefix}}
+      </div>
+      <div class="sm:col-span-2">
+        <label for="default_note" class="label">Default note</label>
+        <textarea id="default_note" name="default_note" rows="4" class="input">{{$s.DefaultNote}}</textarea>
+      </div>
+    </div>
+    <div class="form-actions"><button type="submit" class="btn-primary">Save</button></div>
+  </form>
+</section>
+{{end}}

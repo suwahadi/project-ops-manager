@@ -51,10 +51,18 @@ type Email struct {
 	HasPassword bool
 }
 
+type Invoice struct {
+	CompanyName  string
+	CompanyURL   string
+	NumberPrefix string
+	DefaultNote  string
+}
+
 type All struct {
 	General  General
 	Telegram Telegram
 	Email    Email
+	Invoice  Invoice
 }
 
 func (g General) Location() *time.Location {
@@ -144,6 +152,12 @@ func (s *Store) Load(ctx context.Context) (All, error) {
 			FromName: str("smtp_from_name", ""),
 			To:       str("smtp_to", ""),
 		},
+		Invoice: Invoice{
+			CompanyName:  str("invoice_company_name", ""),
+			CompanyURL:   str("invoice_company_url", ""),
+			NumberPrefix: str("invoice_number_prefix", "INV-DEV-"),
+			DefaultNote:  str("invoice_default_note", ""),
+		},
 	}
 	all.Telegram.HasToken, err = s.hasSecret(ctx, SecretTelegramBotToken)
 	if err != nil {
@@ -220,6 +234,21 @@ func (s *Store) SaveEmail(ctx context.Context, e Email, newPassword string) erro
 		}
 		if newPassword != "" {
 			return s.putSecret(ctx, q, SecretSMTPPassword, newPassword)
+		}
+		return nil
+	})
+}
+
+func (s *Store) SaveInvoice(ctx context.Context, inv Invoice) error {
+	return s.inTx(ctx, func(q *sqlc.Queries) error {
+		values := map[string]any{
+			"invoice_company_name": inv.CompanyName, "invoice_company_url": inv.CompanyURL,
+			"invoice_number_prefix": inv.NumberPrefix, "invoice_default_note": inv.DefaultNote,
+		}
+		for k, v := range values {
+			if err := s.set(ctx, q, k, v); err != nil {
+				return err
+			}
 		}
 		return nil
 	})

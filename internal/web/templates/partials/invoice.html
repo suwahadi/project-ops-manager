@@ -1,0 +1,56 @@
+{{define "invoice_sheet"}}
+{{$i := .Invoice}}{{$cur := $i.Currency}}{{$s := .}}
+<article class="inv">
+  {{if $i.IsPaid}}<div class="inv-ribbon" aria-hidden="true"><span>Paid</span></div>{{end}}
+  <header class="inv-head">
+    <div class="inv-company">
+      <div class="inv-company-name">{{.Company.CompanyName}}</div>
+      {{with .Company.CompanyURL}}<div class="inv-muted">{{.}}</div>{{end}}
+    </div>
+    <div class="inv-heading">
+      <div class="inv-title">INVOICE</div>
+      <div class="inv-number"># {{$i.Number}}</div>
+      {{if $i.IsPaid}}<div class="inv-state inv-state-paid">PAID</div>{{else}}<div class="inv-state inv-state-unpaid">{{if .Overdue}}OVERDUE{{else}}UNPAID{{end}}</div>{{end}}
+    </div>
+  </header>
+  <section class="inv-meta">
+    <div>
+      <div class="inv-label">Bill To</div>
+      <div class="inv-billto">{{$i.BillTo}}</div>
+    </div>
+    <dl class="inv-dates">
+      <div><dt>Invoice Date</dt><dd>{{date $i.InvoiceDate}}</dd></div>
+      {{with $i.DueDate}}<div><dt>Due Date</dt><dd>{{date .}}</dd></div>{{end}}
+      {{with $i.PaidDate}}<div><dt>Paid Date</dt><dd>{{date .}}</dd></div>{{end}}
+    </dl>
+  </section>
+  <table class="inv-table">
+    <thead><tr><th class="inv-col-n">#</th><th>Item</th><th class="inv-num">Qty</th><th class="inv-num">Rate</th><th class="inv-num">Tax</th><th class="inv-num">Amount</th></tr></thead>
+    <tbody>
+      {{range $n, $it := $i.Items}}{{$l := $s.Line $it}}
+      <tr>
+        <td class="inv-col-n">{{add $n 1}}</td>
+        <td><div class="inv-item-title">{{$it.Title}}</div>{{with $it.Description}}<div class="inv-item-desc">{{.}}</div>{{end}}</td>
+        <td class="inv-num">{{decimal $it.Quantity}}</td>
+        <td class="inv-num">{{plainMoney $it.Rate $cur}}</td>
+        <td class="inv-num">{{decimal $it.TaxPercent}}%</td>
+        <td class="inv-num">{{plainMoney $l.Amount $cur}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  <table class="inv-summary">
+    <tr><th>Sub Total</th><td>{{money $i.Totals.Subtotal $cur}}</td></tr>
+    {{if $i.Totals.Tax}}<tr><th>Tax</th><td>{{money $i.Totals.Tax $cur}}</td></tr>{{end}}
+    <tr class="inv-shade"><th>Total</th><td>{{money $i.Totals.Total $cur}}</td></tr>
+    {{if $i.IsPaid}}<tr><th>Payment Made</th><td class="inv-paid-amount">(-) {{money $i.Totals.Paid $cur}}</td></tr>{{end}}
+    <tr class="inv-shade inv-due"><th>Amount Due</th><td>{{money $i.Totals.Due $cur}}</td></tr>
+  </table>
+  {{with $i.Note}}
+  <section class="inv-note">
+    <div class="inv-label">Note:</div>
+    <div class="inv-note-text">{{.}}</div>
+  </section>
+  {{end}}
+</article>
+{{end}}

@@ -1,0 +1,40 @@
+{{define "content"}}
+{{$d := .Data}}{{$i := $d.Sheet.Invoice}}
+{{template "back_link" (dict "Href" "/invoices" "Label" "Invoices")}}
+<div class="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
+  <div class="badge-row">
+    {{if $i.IsPaid}}<span class="badge-active">Paid</span>{{else if $d.Sheet.Overdue}}<span class="badge-expired">Overdue</span>{{else}}<span class="badge-expiring">Unpaid</span>{{end}}
+    {{with $i.ClientName}}<span class="badge-owner">{{.}}</span>{{end}}
+  </div>
+  <div class="page-actions">
+    <a href="/invoices/{{$i.ID}}/pdf" class="btn-primary full">{{icon "download"}}Download PDF</a>
+    {{if $i.IsPaid}}
+      <form method="post" action="/invoices/{{$i.ID}}/unpaid">{{template "csrf" .CSRF}}<button type="submit" class="btn-secondary">Mark unpaid</button></form>
+    {{else}}
+      <button type="button" class="btn-secondary" data-confirm-open="mark-paid">{{icon "check"}}Mark paid</button>
+    {{end}}
+    <a href="/invoices/{{$i.ID}}/edit" class="btn-secondary">Edit</a>
+    <form method="post" action="/invoices/{{$i.ID}}/duplicate">{{template "csrf" .CSRF}}<button type="submit" class="btn-secondary">{{icon "copy"}}Duplicate</button></form>
+    {{template "confirm_button" (dict "ID" "delete-invoice" "Class" "btn-danger" "Label" "Delete" "Action" (print "/invoices/" $i.ID "/delete") "CSRF" .CSRF "Title" (print "Delete " $i.Number "?") "Body" "The invoice and its items are deleted permanently." "Confirm" "Delete invoice" "Danger" true)}}
+  </div>
+</div>
+<div class="inv-screen mx-auto max-w-4xl overflow-hidden rounded-xl border border-slate-200 shadow-sm dark:border-slate-700">
+  {{template "invoice_sheet" $d.Sheet}}
+</div>
+{{if not $i.IsPaid}}
+<dialog id="mark-paid" class="modal" aria-labelledby="mark-paid-title">
+  <form method="post" action="/invoices/{{$i.ID}}/paid" class="card-body space-y-4">
+    {{template "csrf" .CSRF}}
+    <h2 id="mark-paid-title" class="text-lg font-semibold">Mark {{$i.Number}} as paid</h2>
+    <div>
+      <label for="paid-date" class="label">Payment date</label>
+      <input id="paid-date" name="paid_date" type="date" required class="input" value="{{$d.Today}}">
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-dialog-close>Cancel</button>
+      <button type="submit" class="btn-primary">Mark paid</button>
+    </div>
+  </form>
+</dialog>
+{{end}}
+{{end}}

@@ -19,6 +19,7 @@ import (
 	"github.com/suwahadi/project-ops-manager/internal/db/sqlc"
 	"github.com/suwahadi/project-ops-manager/internal/document"
 	"github.com/suwahadi/project-ops-manager/internal/finance"
+	"github.com/suwahadi/project-ops-manager/internal/invoice"
 	"github.com/suwahadi/project-ops-manager/internal/markdown"
 	"github.com/suwahadi/project-ops-manager/internal/project"
 	"github.com/suwahadi/project-ops-manager/internal/provider"
@@ -50,6 +51,8 @@ type Deps struct {
 	RDAP        *rdap.Service
 	Projects    *project.Service
 	Guard       *screenshot.Guard
+	Invoices    *invoice.Service
+	PDF         PDFPrinter
 	Telegram    reminder.TelegramSender
 	Email       reminder.EmailSender
 	Now         func() time.Time

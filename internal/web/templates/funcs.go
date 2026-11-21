@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/suwahadi/project-ops-manager/internal/invoice"
 	"github.com/suwahadi/project-ops-manager/internal/money"
 	"github.com/suwahadi/project-ops-manager/internal/web/static"
 )
@@ -24,7 +25,9 @@ func baseFuncs() template.FuncMap {
 			}
 			return FormatDateTime(*t, loc)
 		},
-		"money": formatMoney,
+		"money":      formatMoney,
+		"decimal":    invoice.FormatDecimal,
+		"plainMoney": plainMoney,
 		"nullMoney": func(n money.NullAmount, cur string) string {
 			if !n.Valid {
 				return "—"
@@ -149,6 +152,12 @@ func isoDate(v any) string {
 	return ""
 }
 
+func plainMoney(a money.Amount, cur any) string {
+	s := formatMoney(a, cur)
+	s = strings.Replace(s, "Rp ", "", 1)
+	return strings.Replace(s, "$", "", 1)
+}
+
 func formatMoney(a money.Amount, cur any) string {
 	return a.Format(money.Currency(fmt.Sprint(cur)))
 }
@@ -165,6 +174,7 @@ var navItems = []NavItem{
 	{"assets", "Assets", "/assets", "assets"},
 	{"clients", "Clients", "/clients", "clients"},
 	{"projects", "Projects", "/projects", "projects"},
+	{"invoices", "Invoices", "/invoices", "invoice"},
 	{"finance", "Finance", "/finance", "finance"},
 	{"settings", "Settings", "/settings", "settings"},
 }

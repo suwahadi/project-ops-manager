@@ -96,6 +96,33 @@ type Document struct {
 	CreatedAt    time.Time
 }
 
+type Invoice struct {
+	ID          string
+	Number      string
+	ClientID    *string
+	AssetID     *string
+	BillTo      string
+	Currency    string
+	InvoiceDate time.Time
+	DueDate     *time.Time
+	Status      string
+	PaidDate    *time.Time
+	Note        string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+type InvoiceItem struct {
+	ID          string
+	InvoiceID   string
+	Position    int32
+	Title       string
+	Description string
+	Quantity    money.Amount
+	Rate        money.Amount
+	TaxPercent  money.Amount
+}
+
 type JobRun struct {
 	ID         int64
 	Job        string
