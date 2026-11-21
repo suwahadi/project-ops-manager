@@ -23,6 +23,8 @@ Uploaded documents and screenshots are stored on the `uploads` volume at `/data/
 
 ## Setup on a Debian 13 VPS
 
+This section is for a dedicated server where Ops Manager owns ports 80 and 443. If the server already hosts other websites behind Nginx, follow [Deploy on a shared VPS behind an existing Nginx](#deploy-on-a-shared-vps-behind-an-existing-nginx) instead.
+
 1. **Install Docker.** Install Docker Engine and the Compose plugin from Docker's official apt repository (see docs.docker.com, "Install Docker Engine on Debian").
 2. **Open the firewall** for SSH, HTTP and HTTPS only:
 
@@ -65,22 +67,247 @@ Uploaded documents and screenshots are stored on the `uploads` volume at `/data/
 
 Migrations and seed data run automatically every time `app` starts, so restarting is always safe. Check that every service is healthy with `docker compose -f deploy/compose.yaml ps`.
 
-### Behind an existing Nginx (shared VPS)
-
-If the server already runs Nginx on ports 80 and 443 for other sites, use `deploy/compose.host-proxy.yaml` instead. It has no Caddy service and publishes the app only on `127.0.0.1:8090` (change it with `OPS_HOST_PORT` in `deploy/.env`). It also caps container memory for small servers: app 384 MB, database 512 MB, Chromium 640 MB.
-
-```sh
-docker compose -f deploy/compose.host-proxy.yaml up -d --build
-```
-
-Then add an Nginx server block for the hostname that proxies to `http://127.0.0.1:8090`, sets `X-Forwarded-For` and `X-Forwarded-Proto`, and allows request bodies up to `256m`. Issue its certificate with the tool the server already uses, for example Certbot. `OPS_DOMAIN` is not needed in this mode.
-
 ### Updating
 
 ```sh
 git pull
 docker compose -f deploy/compose.yaml up -d --build
 ```
+
+## Deploy on a shared VPS behind an existing Nginx
+
+Use this when the server already runs Nginx on ports 80 and 443 for other websites, for example an Ubuntu VPS with Nginx, Certbot and several sites. The app then runs from `deploy/compose.host-proxy.yaml`:
+
+- There is no Caddy service.
+- The app listens only on `127.0.0.1:8090`; change the port with `OPS_HOST_PORT` in `deploy/.env`.
+- Container memory is capped for small servers: app 384 MB, database 512 MB, Chromium 640 MB.
+
+Nginx gets one extra server block, and no other site is touched. Replace `ops.example.com` with your hostname everywhere below, and run every command on the server.
+
+### 1. Check the server first (read-only)
+
+```sh
+sudo ss -tulpn | grep -E ':(80|443|8090)\b'
+ls /etc/nginx/sites-enabled
+certbot --version
+sudo ls /etc/letsencrypt/live
+free -h
+```
+
+What to look for:
+- Ports 80 and 443 should belong to `nginx`, and port 8090 must be free.
+- Look at one existing site in `sites-enabled` to see how it obtains certificates. The steps below use the Certbot `webroot` method.
+
+### 2. Install Docker
+
+```sh
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+echo '{ "log-driver": "json-file", "log-opts": { "max-size": "10m", "max-file": "3" } }' | sudo tee /etc/docker/daemon.json
+sudo systemctl restart docker
+```
+
+The `daemon.json` setting caps container logs at 30 MB per container. Docker does not change Nginx, and because the app binds to `127.0.0.1` only, no new port is opened to the internet.
+
+### 3. Clone the code and create `deploy/.env`
+
+```sh
+sudo mkdir -p /opt/opsmanager
+sudo chown "$USER":"$USER" /opt/opsmanager
+git clone https://github.com/suwahadi/project-ops-manager.git /opt/opsmanager
+cd /opt/opsmanager
+ADMIN_EMAIL="you@example.com"
+KEY=$(openssl rand -base64 32)
+PGPASS=$(openssl rand -hex 24)
+ADMINPASS=$(openssl rand -base64 18)
+cat > deploy/.env <<EOF
+OPS_BASE_URL=https://ops.example.com
+OPS_ENCRYPTION_KEY=$KEY
+OPS_ADMIN_EMAIL=$ADMIN_EMAIL
+OPS_ADMIN_PASSWORD=$ADMINPASS
+POSTGRES_PASSWORD=$PGPASS
+OPS_HOST_PORT=8090
+EOF
+chmod 600 deploy/.env
+unset KEY PGPASS ADMINPASS
+```
+
+Then open the file with `sudo nano /opt/opsmanager/deploy/.env` and copy three values to a password manager **outside the server**:
+- `OPS_ENCRYPTION_KEY`
+- `OPS_ADMIN_PASSWORD`
+- `POSTGRES_PASSWORD`
+
+The database password is hexadecimal so that it is safe inside the connection URL.
+
+### 4. Build and start
+
+```sh
+cd /opt/opsmanager
+sudo docker compose -f deploy/compose.host-proxy.yaml pull db chromium
+sudo docker compose -f deploy/compose.host-proxy.yaml build app
+sudo docker compose -f deploy/compose.host-proxy.yaml up -d
+sudo docker compose -f deploy/compose.host-proxy.yaml ps
+curl -s -o /dev/null -w "healthz: %{http_code}\n" http://127.0.0.1:8090/healthz
+```
+
+The first build takes about 5–15 minutes on 2 vCPUs. When it is done:
+- All three services should be `healthy`.
+- `healthz` should print `200`.
+- The app log (`sudo docker compose -f deploy/compose.host-proxy.yaml logs app`) should show `admin account created`.
+
+### 5. Nginx: HTTP block for the certificate challenge
+
+```sh
+sudo mkdir -p /www/wwwroot/ops.example.com/.well-known/acme-challenge
+sudo tee /etc/nginx/sites-available/ops.example.com > /dev/null <<'EOF'
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ops.example.com;
+    location ^~ /.well-known/acme-challenge/ { root /www/wwwroot/ops.example.com; default_type text/plain; }
+    location / { return 301 https://$host$request_uri; }
+}
+EOF
+sudo ln -s /etc/nginx/sites-available/ops.example.com /etc/nginx/sites-enabled/ops.example.com
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Use whichever webroot convention the server already follows; `/www/wwwroot/<host>` is only an example. Always run `nginx -t` before a reload: if the test fails, Nginx keeps serving the old configuration.
+
+### 6. Certificate and the HTTPS block
+
+```sh
+sudo certbot certonly --webroot -w /www/wwwroot/ops.example.com -d ops.example.com --keep-until-expiring
+sudo tee /etc/nginx/sites-available/ops.example.com > /dev/null <<'EOF'
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ops.example.com;
+    location ^~ /.well-known/acme-challenge/ { root /www/wwwroot/ops.example.com; default_type text/plain; }
+    location / { return 301 https://$host$request_uri; }
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name ops.example.com;
+
+    ssl_certificate /etc/letsencrypt/live/ops.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/ops.example.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_cache shared:ops_ssl:10m;
+    ssl_session_timeout 10m;
+
+    client_max_body_size 256m;
+
+    location ^~ /.well-known/acme-challenge/ { root /www/wwwroot/ops.example.com; default_type text/plain; }
+
+    location / {
+        proxy_pass http://127.0.0.1:8090;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 120s;
+        proxy_send_timeout 120s;
+    }
+
+    access_log /var/log/nginx/ops.example.com.log;
+    error_log /var/log/nginx/ops.example.com.error.log;
+}
+EOF
+sudo nginx -t && sudo systemctl reload nginx
+curl -sI https://ops.example.com/login | head -1
+```
+
+Notes on the HTTPS block:
+- `client_max_body_size 256m` allows uploads of up to 10 files of 20 MB each.
+- `proxy_read_timeout 120s` leaves time for large image conversions.
+
+**Make renewals reload Nginx.** If `/etc/letsencrypt/renewal-hooks/deploy/` is empty and no other renewal hook exists, renewed certificates are only picked up at the next Nginx reload. Add a hook:
+
+```sh
+sudo grep -H -E 'renew_hook|deploy_hook|post_hook' /etc/letsencrypt/renewal/*.conf /etc/letsencrypt/cli.ini 2>/dev/null || echo "no hook"
+printf '#!/bin/sh\nnginx -t -q && systemctl reload nginx\n' | sudo tee /etc/letsencrypt/renewal-hooks/deploy/reload-nginx > /dev/null
+sudo chmod 755 /etc/letsencrypt/renewal-hooks/deploy/reload-nginx
+sudo certbot renew --dry-run
+```
+
+The hook applies to every site on the server. It runs only after a certificate is actually renewed, and it reloads Nginx only if the configuration test passes.
+
+### 7. First sign-in
+
+1. Open `https://ops.example.com` and sign in with `OPS_ADMIN_EMAIL` and `OPS_ADMIN_PASSWORD` from `deploy/.env`.
+2. Change the password under **Settings → Account**. The admin variables are read only on the very first start; afterwards, editing them in `.env` does not change the login.
+3. Check **Settings → General**, then configure **Settings → Notifications** (see [Notification setup](#notification-setup)).
+
+### 8. Nightly backups
+
+```sh
+sudo tee /usr/local/bin/opsmanager-backup > /dev/null <<'EOF'
+#!/bin/sh
+set -eu
+DIR=/var/backups/opsmanager
+COMPOSE="docker compose -f /opt/opsmanager/deploy/compose.host-proxy.yaml"
+DATE=$(date +%F)
+mkdir -p "$DIR"
+chmod 700 "$DIR"
+$COMPOSE exec -T db pg_dump -U ops -Fc ops > "$DIR/db-$DATE.dump"
+docker run --rm --user 0 --entrypoint tar -v opsmanager_uploads:/data:ro -v "$DIR":/backup opsmanager:local czf "/backup/uploads-$DATE.tar.gz" -C /data .
+chmod 600 "$DIR"/*
+find "$DIR" -type f -mtime +14 -delete
+echo "$(date -Is) backup ok"
+EOF
+sudo chmod 755 /usr/local/bin/opsmanager-backup
+sudo /usr/local/bin/opsmanager-backup
+echo '30 19 * * * root /usr/local/bin/opsmanager-backup >> /var/log/opsmanager-backup.log 2>&1' | sudo tee /etc/cron.d/opsmanager-backup > /dev/null
+```
+
+What this sets up:
+- The cron line runs at 19:30 UTC, which is 02:30 in Asia/Jakarta. Adjust it to your server's timezone.
+- Backups are kept for 14 days.
+
+To check that a dump can be restored, count its tables:
+
+```sh
+sudo sh -c 'docker compose -f /opt/opsmanager/deploy/compose.host-proxy.yaml exec -T db pg_restore --list < /var/backups/opsmanager/db-$(date +%F).dump | grep -c "TABLE DATA"'
+```
+
+Copy `/var/backups/opsmanager` off the server regularly, and keep `OPS_ENCRYPTION_KEY` in a separate safe place. A restore without the key cannot decrypt credentials or notification secrets.
+
+### 9. Everyday commands
+
+| Task | Command |
+| --- | --- |
+| Status | `sudo docker compose -f /opt/opsmanager/deploy/compose.host-proxy.yaml ps` |
+| Logs | `sudo docker compose -f /opt/opsmanager/deploy/compose.host-proxy.yaml logs app --tail 50` |
+| Warnings and errors | `sudo docker compose -f /opt/opsmanager/deploy/compose.host-proxy.yaml logs app --since 1h \| grep -E '"level":"(ERROR\|WARN)"'` |
+| Memory | `sudo docker stats --no-stream` |
+| Edit settings | `sudo nano /opt/opsmanager/deploy/.env`, then `cd /opt/opsmanager && sudo docker compose -f deploy/compose.host-proxy.yaml up -d` |
+| Run a backup now | `sudo /usr/local/bin/opsmanager-backup` |
+
+Never change `OPS_ENCRYPTION_KEY` by hand; use the rotation procedure in [Keep the encryption key safe](#keep-the-encryption-key-safe). Never change `POSTGRES_PASSWORD` after the first start.
+
+### 10. Updating
+
+```sh
+cd /opt/opsmanager
+git pull
+sudo docker compose -f deploy/compose.host-proxy.yaml up -d --build
+sudo docker image prune -f
+curl -s -o /dev/null -w "healthz: %{http_code}\n" http://127.0.0.1:8090/healthz
+```
+
+What to expect:
+- Migrations run automatically on start.
+- The app is unavailable for a few seconds while the container is replaced.
+- `image prune` removes only dangling images left over from earlier builds.
 
 ## Notification setup
 
@@ -146,7 +373,7 @@ docker compose -f deploy/compose.yaml stop app
 docker compose -f deploy/compose.yaml run --rm -e OPS_ENCRYPTION_KEY_NEW='<new key>' app rotate-key
 ```
 
-Then set `OPS_ENCRYPTION_KEY` in `deploy/.env` to the new key and start `app` again. Save the new key outside the VPS.
+Then set `OPS_ENCRYPTION_KEY` in `deploy/.env` to the new key and start `app` again. On a shared VPS, use `-f deploy/compose.host-proxy.yaml` in these commands. Save the new key outside the VPS.
 
 ## Backups
 
