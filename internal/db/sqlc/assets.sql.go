@@ -173,14 +173,18 @@ func (q *Queries) ListAssetDocumentPaths(ctx context.Context, assetID *string) (
 }
 
 const listAssetOptions = `-- name: ListAssetOptions :many
-SELECT a.id, a.name, t.name AS type_name FROM assets a JOIN asset_types t ON t.id = a.asset_type_id
+SELECT a.id, a.name, t.name AS type_name, c.name AS client_name
+FROM assets a
+JOIN asset_types t ON t.id = a.asset_type_id
+LEFT JOIN clients c ON c.id = a.client_id
 ORDER BY lower(a.name)
 `
 
 type ListAssetOptionsRow struct {
-	ID       string
-	Name     string
-	TypeName string
+	ID         string
+	Name       string
+	TypeName   string
+	ClientName *string
 }
 
 func (q *Queries) ListAssetOptions(ctx context.Context) ([]ListAssetOptionsRow, error) {
@@ -192,7 +196,12 @@ func (q *Queries) ListAssetOptions(ctx context.Context) ([]ListAssetOptionsRow, 
 	items := []ListAssetOptionsRow{}
 	for rows.Next() {
 		var i ListAssetOptionsRow
-		if err := rows.Scan(&i.ID, &i.Name, &i.TypeName); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.TypeName,
+			&i.ClientName,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

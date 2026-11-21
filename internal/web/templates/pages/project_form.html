@@ -13,7 +13,7 @@
       </div>
       <div>
         <label for="owner" class="label">Owner</label>
-        <select id="owner" name="owner" class="input{{if $e.owner}} input-error{{end}}">
+        <select id="owner" name="owner" data-combobox class="input{{if $e.owner}} input-error{{end}}">
           <option value="internal"{{if eq $d.Owner "internal"}} selected{{end}}>Internal</option>
           {{range $d.Clients}}<option value="{{.ID}}"{{if eq .ID $d.Owner}} selected{{end}}>{{.Name}}</option>{{end}}
         </select>
@@ -44,14 +44,11 @@
     {{if not $d.Assets}}
       <p class="section-desc">No assets yet. <a href="/assets/new" class="text-indigo-700 underline dark:text-indigo-300">Add asset</a></p>
     {{else}}
-    <ul class="max-h-80 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-700">
-      {{range $d.Assets}}
-      <li><label class="flex min-h-11 items-center gap-3 px-3 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/50">
-        <input type="checkbox" name="asset_ids" value="{{.ID}}" class="h-4 w-4 shrink-0 rounded border-slate-300 accent-indigo-600"{{if contains $d.AssetIDs .ID}} checked{{end}}>
-        <span class="min-w-0 flex-1 truncate">{{.Name}}</span><span class="badge-outline">{{.TypeName}}</span>
-      </label></li>
+    <label for="asset_ids" class="sr-only">Linked assets</label>
+    <select id="asset_ids" name="asset_ids" multiple data-combobox data-placeholder="Choose assets" class="input h-auto py-2" size="8">
+      {{range $d.Assets}}<option value="{{.ID}}" data-hint="{{.TypeName}} · {{or (deref .ClientName) "Internal"}}"{{if contains $d.AssetIDs .ID}} selected{{end}}>{{.Name}}</option>
       {{end}}
-    </ul>
+    </select>
     {{end}}
   </div></section>
 

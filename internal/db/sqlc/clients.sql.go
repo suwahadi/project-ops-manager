@@ -91,6 +91,83 @@ func (q *Queries) GetClient(ctx context.Context, id string) (Client, error) {
 	return i, err
 }
 
+const linkAssetsToClient = `-- name: LinkAssetsToClient :execrows
+UPDATE assets SET client_id = $1::uuid, updated_at = now()
+WHERE id = ANY($2::uuid[]) AND client_id IS DISTINCT FROM $1::uuid
+`
+
+type LinkAssetsToClientParams struct {
+	ClientID string
+	Ids      []string
+}
+
+func (q *Queries) LinkAssetsToClient(ctx context.Context, arg LinkAssetsToClientParams) (int64, error) {
+	result, err := q.db.Exec(ctx, linkAssetsToClient, arg.ClientID, arg.Ids)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const linkProjectsToClient = `-- name: LinkProjectsToClient :execrows
+UPDATE projects SET client_id = $1::uuid, updated_at = now()
+WHERE id = ANY($2::uuid[]) AND client_id IS DISTINCT FROM $1::uuid
+`
+
+type LinkProjectsToClientParams struct {
+	ClientID string
+	Ids      []string
+}
+
+func (q *Queries) LinkProjectsToClient(ctx context.Context, arg LinkProjectsToClientParams) (int64, error) {
+	result, err := q.db.Exec(ctx, linkProjectsToClient, arg.ClientID, arg.Ids)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const listAssetsLinkableToClient = `-- name: ListAssetsLinkableToClient :many
+SELECT a.id, a.name, t.name AS type_name, c.name AS client_name
+FROM assets a
+JOIN asset_types t ON t.id = a.asset_type_id
+LEFT JOIN clients c ON c.id = a.client_id
+WHERE a.client_id IS DISTINCT FROM $1::uuid
+ORDER BY lower(a.name)
+`
+
+type ListAssetsLinkableToClientRow struct {
+	ID         string
+	Name       string
+	TypeName   string
+	ClientName *string
+}
+
+func (q *Queries) ListAssetsLinkableToClient(ctx context.Context, clientID string) ([]ListAssetsLinkableToClientRow, error) {
+	rows, err := q.db.Query(ctx, listAssetsLinkableToClient, clientID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListAssetsLinkableToClientRow{}
+	for rows.Next() {
+		var i ListAssetsLinkableToClientRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.TypeName,
+			&i.ClientName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listClientOptions = `-- name: ListClientOptions :many
 SELECT id, name FROM clients ORDER BY lower(name)
 `
@@ -199,6 +276,76 @@ func (q *Queries) ListProjectsByClient(ctx context.Context, clientID *string) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const listProjectsLinkableToClient = `-- name: ListProjectsLinkableToClient :many
+SELECT p.id, p.name, c.name AS client_name
+FROM projects p
+LEFT JOIN clients c ON c.id = p.client_id
+WHERE p.client_id IS DISTINCT FROM $1::uuid
+ORDER BY lower(p.name)
+`
+
+type ListProjectsLinkableToClientRow struct {
+	ID         string
+	Name       string
+	ClientName *string
+}
+
+func (q *Queries) ListProjectsLinkableToClient(ctx context.Context, clientID string) ([]ListProjectsLinkableToClientRow, error) {
+	rows, err := q.db.Query(ctx, listProjectsLinkableToClient, clientID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListProjectsLinkableToClientRow{}
+	for rows.Next() {
+		var i ListProjectsLinkableToClientRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.ClientName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const unlinkAssetFromClient = `-- name: UnlinkAssetFromClient :execrows
+UPDATE assets SET client_id = NULL, selling_price = NULL, updated_at = now()
+WHERE id = $1::uuid AND client_id = $2::uuid
+`
+
+type UnlinkAssetFromClientParams struct {
+	AssetID  string
+	ClientID string
+}
+
+func (q *Queries) UnlinkAssetFromClient(ctx context.Context, arg UnlinkAssetFromClientParams) (int64, error) {
+	result, err := q.db.Exec(ctx, unlinkAssetFromClient, arg.AssetID, arg.ClientID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const unlinkProjectFromClient = `-- name: UnlinkProjectFromClient :execrows
+UPDATE projects SET client_id = NULL, updated_at = now()
+WHERE id = $1::uuid AND client_id = $2::uuid
+`
+
+type UnlinkProjectFromClientParams struct {
+	ProjectID string
+	ClientID  string
+}
+
+func (q *Queries) UnlinkProjectFromClient(ctx context.Context, arg UnlinkProjectFromClientParams) (int64, error) {
+	result, err := q.db.Exec(ctx, unlinkProjectFromClient, arg.ProjectID, arg.ClientID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const updateClient = `-- name: UpdateClient :exec

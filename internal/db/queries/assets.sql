@@ -69,7 +69,10 @@ WHERE a.client_id = $1
 ORDER BY a.expiration_date, lower(a.name);
 
 -- name: ListAssetOptions :many
-SELECT a.id, a.name, t.name AS type_name FROM assets a JOIN asset_types t ON t.id = a.asset_type_id
+SELECT a.id, a.name, t.name AS type_name, c.name AS client_name
+FROM assets a
+JOIN asset_types t ON t.id = a.asset_type_id
+LEFT JOIN clients c ON c.id = a.client_id
 ORDER BY lower(a.name);
 
 -- name: SearchAssets :many

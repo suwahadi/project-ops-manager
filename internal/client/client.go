@@ -12,8 +12,9 @@ import (
 )
 
 var (
-	ErrNotFound = errors.New("client not found")
-	ErrInUse    = errors.New("client has assets or projects")
+	ErrNotFound  = errors.New("client not found")
+	ErrInUse     = errors.New("client has assets or projects")
+	ErrNotLinked = errors.New("item does not belong to this client")
 )
 
 type Input struct {
@@ -83,4 +84,50 @@ func (s *Service) Assets(ctx context.Context, id string) ([]sqlc.ListAssetsByCli
 
 func (s *Service) Projects(ctx context.Context, id string) ([]sqlc.ListProjectsByClientRow, error) {
 	return s.q.ListProjectsByClient(ctx, &id)
+}
+
+func (s *Service) LinkableAssets(ctx context.Context, id string) ([]sqlc.ListAssetsLinkableToClientRow, error) {
+	return s.q.ListAssetsLinkableToClient(ctx, id)
+}
+
+func (s *Service) LinkableProjects(ctx context.Context, id string) ([]sqlc.ListProjectsLinkableToClientRow, error) {
+	return s.q.ListProjectsLinkableToClient(ctx, id)
+}
+
+func (s *Service) LinkAssets(ctx context.Context, id string, assetIDs []string) (int64, error) {
+	n, err := s.q.LinkAssetsToClient(ctx, sqlc.LinkAssetsToClientParams{ClientID: id, Ids: assetIDs})
+	if err != nil {
+		return 0, fmt.Errorf("link assets: %w", err)
+	}
+	return n, nil
+}
+
+func (s *Service) LinkProjects(ctx context.Context, id string, projectIDs []string) (int64, error) {
+	n, err := s.q.LinkProjectsToClient(ctx, sqlc.LinkProjectsToClientParams{ClientID: id, Ids: projectIDs})
+	if err != nil {
+		return 0, fmt.Errorf("link projects: %w", err)
+	}
+	return n, nil
+}
+
+func (s *Service) UnlinkAsset(ctx context.Context, id, assetID string) error {
+	n, err := s.q.UnlinkAssetFromClient(ctx, sqlc.UnlinkAssetFromClientParams{AssetID: assetID, ClientID: id})
+	if err != nil {
+		return fmt.Errorf("unlink asset: %w", err)
+	}
+	if n == 0 {
+		return ErrNotLinked
+	}
+	return nil
+}
+
+func (s *Service) UnlinkProject(ctx context.Context, id, projectID string) error {
+	n, err := s.q.UnlinkProjectFromClient(ctx, sqlc.UnlinkProjectFromClientParams{ProjectID: projectID, ClientID: id})
+	if err != nil {
+		return fmt.Errorf("unlink project: %w", err)
+	}
+	if n == 0 {
+		return ErrNotLinked
+	}
+	return nil
 }

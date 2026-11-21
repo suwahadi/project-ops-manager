@@ -17,7 +17,7 @@
           <input type="hidden" name="type_id" value="{{$f.TypeID}}">
           <select id="type_id" class="input" disabled title="The type cannot change while custom field values exist">{{range $d.Types}}{{if eq .ID $f.TypeID}}<option>{{.Name}}</option>{{end}}{{end}}</select>
         {{else}}
-          <select id="type_id" name="type_id" class="input{{if $e.type_id}} input-error{{end}}" hx-get="/assets/fields" hx-target="#custom-fields" hx-swap="outerHTML" hx-trigger="change" hx-include="this">
+          <select id="type_id" name="type_id" data-combobox class="input{{if $e.type_id}} input-error{{end}}" hx-get="/assets/fields" hx-target="#custom-fields" hx-swap="outerHTML" hx-trigger="change" hx-include="this">
             {{range $d.Types}}<option value="{{.ID}}"{{if eq .ID $f.TypeID}} selected{{end}}>{{.Name}}</option>{{end}}
           </select>
         {{end}}
@@ -25,7 +25,7 @@
       </div>
       <div>
         <label for="owner" class="label">Owner</label>
-        <select id="owner" name="owner" class="input{{if $e.owner}} input-error{{end}}">
+        <select id="owner" name="owner" data-combobox class="input{{if $e.owner}} input-error{{end}}">
           <option value="internal"{{if eq $f.Owner "internal"}} selected{{end}}>Internal</option>
           {{range $d.Clients}}<option value="{{.ID}}"{{if eq .ID $f.Owner}} selected{{end}}>{{.Name}}</option>{{end}}
         </select>
@@ -33,7 +33,7 @@
       </div>
       <div>
         <label for="provider_id" class="label">Provider</label>
-        <select id="provider_id" name="provider_id" class="input{{if $e.provider_id}} input-error{{end}}">
+        <select id="provider_id" name="provider_id" data-combobox class="input{{if $e.provider_id}} input-error{{end}}">
           <option value="">Choose a provider</option>
           {{range $d.Providers}}<option value="{{.ID}}"{{if eq .ID $f.ProviderID}} selected{{end}}>{{.Name}}</option>{{end}}
         </select>

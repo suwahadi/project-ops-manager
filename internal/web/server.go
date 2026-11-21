@@ -92,6 +92,10 @@ func registerPrivate(mux *http.ServeMux, app *handlers.App) {
 	mux.HandleFunc("GET /clients/{id}/edit", app.ClientEdit)
 	mux.HandleFunc("POST /clients/{id}", app.ClientUpdate)
 	mux.HandleFunc("POST /clients/{id}/delete", app.ClientDelete)
+	mux.HandleFunc("POST /clients/{id}/assets", app.ClientLinkAssets)
+	mux.HandleFunc("POST /clients/{id}/assets/{item}/unlink", app.ClientUnlinkAsset)
+	mux.HandleFunc("POST /clients/{id}/projects", app.ClientLinkProjects)
+	mux.HandleFunc("POST /clients/{id}/projects/{item}/unlink", app.ClientUnlinkProject)
 
 	mux.HandleFunc("GET /settings/providers", app.ProviderList)
 	mux.HandleFunc("POST /settings/providers", app.ProviderCreate)

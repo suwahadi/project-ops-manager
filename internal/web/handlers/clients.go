@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/mail"
+	"strconv"
 	"strings"
 
 	"github.com/suwahadi/project-ops-manager/internal/asset"
@@ -141,10 +143,12 @@ type clientAssetView struct {
 }
 
 type clientDetailData struct {
-	Client   sqlc.Client
-	Assets   []clientAssetView
-	Projects []sqlc.ListProjectsByClientRow
-	Totals   []finance.AnnualTotal
+	Client           sqlc.Client
+	Assets           []clientAssetView
+	Projects         []sqlc.ListProjectsByClientRow
+	Totals           []finance.AnnualTotal
+	LinkableAssets   []sqlc.ListAssetsLinkableToClientRow
+	LinkableProjects []sqlc.ListProjectsLinkableToClientRow
 }
 
 func (a *App) ClientShow(w http.ResponseWriter, r *http.Request) {
@@ -163,8 +167,18 @@ func (a *App) ClientShow(w http.ResponseWriter, r *http.Request) {
 		a.serverError(w, r, err)
 		return
 	}
+	linkableAssets, err := a.Clients.LinkableAssets(ctx, c.ID)
+	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	linkableProjects, err := a.Clients.LinkableProjects(ctx, c.ID)
+	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
 	today := a.today(r)
-	data := clientDetailData{Client: c, Projects: projects}
+	data := clientDetailData{Client: c, Projects: projects, LinkableAssets: linkableAssets, LinkableProjects: linkableProjects}
 	var recurring []finance.Recurring
 	for _, row := range rows {
 		cancelled := row.CancelledAt != nil
@@ -179,4 +193,92 @@ func (a *App) ClientShow(w http.ResponseWriter, r *http.Request) {
 	}
 	data.Totals = finance.Annualize(recurring)
 	a.render(w, r, http.StatusOK, "client_detail", c.Name, "clients", data)
+}
+
+func selectedIDs(r *http.Request, field string) []string {
+	if err := r.ParseForm(); err != nil {
+		return nil
+	}
+	seen := map[string]bool{}
+	var ids []string
+	for _, id := range r.PostForm[field] {
+		if isUUID(id) && !seen[id] {
+			seen[id] = true
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
+
+func linkedMessage(n int64, one, many string) string {
+	if n == 1 {
+		return "1 " + one + " linked."
+	}
+	return strconv.FormatInt(n, 10) + " " + many + " linked."
+}
+
+func (a *App) ClientLinkAssets(w http.ResponseWriter, r *http.Request) {
+	c, ok := a.loadClient(w, r)
+	if !ok {
+		return
+	}
+	ids := selectedIDs(r, "asset_ids")
+	if len(ids) == 0 {
+		a.redirectWithFlash(w, r, "/clients/"+c.ID, "Choose at least one asset to link.", true)
+		return
+	}
+	n, err := a.Clients.LinkAssets(r.Context(), c.ID, ids)
+	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	a.redirectWithFlash(w, r, "/clients/"+c.ID, linkedMessage(n, "asset", "assets"), false)
+}
+
+func (a *App) ClientLinkProjects(w http.ResponseWriter, r *http.Request) {
+	c, ok := a.loadClient(w, r)
+	if !ok {
+		return
+	}
+	ids := selectedIDs(r, "project_ids")
+	if len(ids) == 0 {
+		a.redirectWithFlash(w, r, "/clients/"+c.ID, "Choose at least one project to link.", true)
+		return
+	}
+	n, err := a.Clients.LinkProjects(r.Context(), c.ID, ids)
+	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	a.redirectWithFlash(w, r, "/clients/"+c.ID, linkedMessage(n, "project", "projects"), false)
+}
+
+func (a *App) ClientUnlinkAsset(w http.ResponseWriter, r *http.Request) {
+	a.clientUnlink(w, r, a.Clients.UnlinkAsset, "Asset moved to Internal.")
+}
+
+func (a *App) ClientUnlinkProject(w http.ResponseWriter, r *http.Request) {
+	a.clientUnlink(w, r, a.Clients.UnlinkProject, "Project moved to Internal.")
+}
+
+func (a *App) clientUnlink(w http.ResponseWriter, r *http.Request, unlink func(ctx context.Context, clientID, itemID string) error, done string) {
+	c, ok := a.loadClient(w, r)
+	if !ok {
+		return
+	}
+	item := r.PathValue("item")
+	if !isUUID(item) {
+		a.notFound(w, r)
+		return
+	}
+	err := unlink(r.Context(), c.ID, item)
+	if errors.Is(err, client.ErrNotLinked) {
+		a.redirectWithFlash(w, r, "/clients/"+c.ID, "That item no longer belongs to this client.", true)
+		return
+	}
+	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+	a.redirectWithFlash(w, r, "/clients/"+c.ID, done, false)
 }

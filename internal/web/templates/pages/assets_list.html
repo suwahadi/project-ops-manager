@@ -18,7 +18,7 @@
     <div id="filter-panel" class="mt-4 hidden gap-4 sm:grid-cols-2 md:grid md:grid-cols-5">
       <div>
         <label for="filter-type" class="label">Type</label>
-        <select id="filter-type" name="type" class="input">
+        <select data-combobox id="filter-type" name="type" class="input">
           <option value="">All types</option>
           {{range $d.Types}}<option value="{{.ID}}"{{if eq .ID $d.Filter.TypeID}} selected{{end}}>{{.Name}}</option>{{end}}
         </select>
@@ -32,7 +32,7 @@
       </div>
       <div>
         <label for="filter-owner" class="label">Owner</label>
-        <select id="filter-owner" name="owner" class="input">
+        <select data-combobox id="filter-owner" name="owner" class="input">
           <option value="">All owners</option>
           <option value="internal"{{if eq $d.Filter.Owner "internal"}} selected{{end}}>Internal</option>
           {{range $d.Clients}}<option value="{{.ID}}"{{if eq .ID $d.Filter.Owner}} selected{{end}}>{{.Name}}</option>{{end}}
@@ -40,7 +40,7 @@
       </div>
       <div>
         <label for="filter-provider" class="label">Provider</label>
-        <select id="filter-provider" name="provider" class="input">
+        <select data-combobox id="filter-provider" name="provider" class="input">
           <option value="">All providers</option>
           {{range $d.Providers}}<option value="{{.ID}}"{{if eq .ID $d.Filter.ProviderID}} selected{{end}}>{{.Name}}</option>{{end}}
         </select>

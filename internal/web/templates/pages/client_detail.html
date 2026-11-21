@@ -29,29 +29,84 @@
 </div>
 
 <section class="mt-6">
-  <h2 class="card-title mb-3">Assets</h2>
+  <div class="card-header mb-3">
+    <h2 class="card-title">Assets</h2>
+    {{if $d.LinkableAssets}}<button type="button" class="btn-secondary btn-sm" data-confirm-open="link-assets">{{icon "link" "h-4 w-4"}}Link existing</button>{{end}}
+  </div>
   {{if not $d.Assets}}
     {{template "empty_state" (dict "Message" "This client has no assets yet." "Href" (print "/assets/new?owner=" $c.ID) "Action" "Add asset")}}
   {{else}}
   <ul class="card divide-y divide-slate-100 dark:divide-slate-800">
     {{range $d.Assets}}
-    <li><a href="/assets/{{.ID}}" class="list-row hover:bg-slate-50 dark:hover:bg-slate-800/50">
-      <span class="flex min-w-0 flex-wrap items-center gap-2"><span class="font-medium">{{.Name}}</span>{{template "type_badge" (dict "Name" .TypeName "Icon" .TypeIcon)}}</span>
-      <span class="badge-row"><span class="text-sm text-slate-500 dark:text-slate-400">{{date .ExpirationDate}}</span>{{template "countdown_badge" .}}{{template "status_badge" .Status}}</span>
-    </a></li>
+    <li class="flex items-center">
+      <a href="/assets/{{.ID}}" class="list-row min-w-0 flex-1 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+        <span class="flex min-w-0 flex-wrap items-center gap-2"><span class="font-medium">{{.Name}}</span>{{template "type_badge" (dict "Name" .TypeName "Icon" .TypeIcon)}}</span>
+        <span class="badge-row"><span class="text-sm text-slate-500 dark:text-slate-400">{{date .ExpirationDate}}</span>{{template "countdown_badge" .}}{{template "status_badge" .Status}}</span>
+      </a>
+      <div class="shrink-0 pr-2 sm:pr-4">{{template "confirm_button" (dict "ID" (print "unlink-asset-" .ID) "Class" "btn-ghost btn-sm" "Label" "Unlink" "Action" (print "/clients/" $c.ID "/assets/" .ID "/unlink") "CSRF" $.CSRF "Title" (print "Unlink " .Name "?") "Body" (print .Name " becomes an Internal asset." (or (and .SellingPrice.Valid " Its selling price will be removed, because Internal assets have no selling price.") "")) "Confirm" "Unlink asset" "Danger" .SellingPrice.Valid)}}</div>
+    </li>
     {{end}}
   </ul>
   {{end}}
 </section>
 
 <section class="mt-6">
-  <h2 class="card-title mb-3">Projects</h2>
+  <div class="card-header mb-3">
+    <h2 class="card-title">Projects</h2>
+    {{if $d.LinkableProjects}}<button type="button" class="btn-secondary btn-sm" data-confirm-open="link-projects">{{icon "link" "h-4 w-4"}}Link existing</button>{{end}}
+  </div>
   {{if not $d.Projects}}
     {{template "empty_state" (dict "Message" "This client has no projects yet." "Href" (print "/projects/new?owner=" $c.ID) "Action" "Add project")}}
   {{else}}
   <ul class="card divide-y divide-slate-100 dark:divide-slate-800">
-    {{range $d.Projects}}<li><a href="/projects/{{.ID}}" class="list-row hover:bg-slate-50 dark:hover:bg-slate-800/50"><span class="font-medium">{{.Name}}</span><span class="min-w-0 truncate text-sm text-slate-500 dark:text-slate-400">{{deref .Url}}</span></a></li>{{end}}
+    {{range $d.Projects}}
+    <li class="flex items-center">
+      <a href="/projects/{{.ID}}" class="list-row min-w-0 flex-1 hover:bg-slate-50 dark:hover:bg-slate-800/50"><span class="font-medium">{{.Name}}</span><span class="min-w-0 truncate text-sm text-slate-500 dark:text-slate-400">{{deref .Url}}</span></a>
+      <div class="shrink-0 pr-2 sm:pr-4">{{template "confirm_button" (dict "ID" (print "unlink-project-" .ID) "Class" "btn-ghost btn-sm" "Label" "Unlink" "Action" (print "/clients/" $c.ID "/projects/" .ID "/unlink") "CSRF" $.CSRF "Title" (print "Unlink " .Name "?") "Body" (print .Name " becomes an Internal project. Its linked assets stay as they are.") "Confirm" "Unlink project" "Danger" false)}}</div>
+    </li>
+    {{end}}
   </ul>
   {{end}}
 </section>
+
+{{if $d.LinkableAssets}}
+<dialog id="link-assets" class="modal" aria-labelledby="link-assets-title">
+  <form method="post" action="/clients/{{$c.ID}}/assets" class="card-body space-y-4">
+    {{template "csrf" .CSRF}}
+    <h2 id="link-assets-title" class="text-lg font-semibold">Link existing assets</h2>
+    <p class="text-sm text-slate-600 dark:text-slate-400">Chosen assets move to {{$c.Name}}, including assets that belong to another client.</p>
+    <div>
+      <label for="link-asset-ids" class="sr-only">Assets</label>
+      <select id="link-asset-ids" name="asset_ids" multiple data-combobox="inline" class="input h-auto py-2" size="8">
+        {{range $d.LinkableAssets}}<option value="{{.ID}}" data-hint="{{.TypeName}} · {{or (deref .ClientName) "Internal"}}">{{.Name}}</option>
+        {{end}}
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-dialog-close>Cancel</button>
+      <button type="submit" class="btn-primary">Link assets</button>
+    </div>
+  </form>
+</dialog>
+{{end}}
+{{if $d.LinkableProjects}}
+<dialog id="link-projects" class="modal" aria-labelledby="link-projects-title">
+  <form method="post" action="/clients/{{$c.ID}}/projects" class="card-body space-y-4">
+    {{template "csrf" .CSRF}}
+    <h2 id="link-projects-title" class="text-lg font-semibold">Link existing projects</h2>
+    <p class="text-sm text-slate-600 dark:text-slate-400">Chosen projects move to {{$c.Name}}, including projects that belong to another client.</p>
+    <div>
+      <label for="link-project-ids" class="sr-only">Projects</label>
+      <select id="link-project-ids" name="project_ids" multiple data-combobox="inline" class="input h-auto py-2" size="8">
+        {{range $d.LinkableProjects}}<option value="{{.ID}}" data-hint="{{or (deref .ClientName) "Internal"}}">{{.Name}}</option>
+        {{end}}
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-dialog-close>Cancel</button>
+      <button type="submit" class="btn-primary">Link projects</button>
+    </div>
+  </form>
+</dialog>
+{{end}}
 {{end}}
