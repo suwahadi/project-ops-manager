@@ -21,6 +21,8 @@ type assetTab struct {
 
 var assetTabs = []assetTab{
 	{"overview", "Overview"},
+	{"renewals", "Renewals"},
+	{"documents", "Documents"},
 	{"notes", "Notes & Credentials"},
 	{"reminders", "Reminders"},
 }
@@ -40,6 +42,7 @@ type assetDetailData struct {
 	NotesHTML    template.HTML
 	Credentials  []sqlc.ListCredentialsRow
 	Extra        any
+	Renew        renewDialogData
 }
 
 func (a *App) AssetShow(w http.ResponseWriter, r *http.Request) {
@@ -58,6 +61,7 @@ func (a *App) AssetShow(w http.ResponseWriter, r *http.Request) {
 		tab = "overview"
 	}
 	data := assetDetailData{Asset: det, Tabs: assetTabs, Tab: tab, Location: a.location(r)}
+	data.Renew = renewDialogData{Asset: det, Form: a.defaultRenewForm(det, a.today(r))}
 	ctx := r.Context()
 	switch tab {
 	case "overview":
@@ -91,6 +95,18 @@ func (a *App) AssetShow(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) loadAssetTabExtra(r *http.Request, d *assetDetailData) error {
 	switch d.Tab {
+	case "renewals":
+		extra, err := a.renewalsTab(r, d.Asset)
+		if err != nil {
+			return err
+		}
+		d.Extra = extra
+	case "documents":
+		own, _, err := a.Documents.ListForAsset(r.Context(), d.Asset.ID)
+		if err != nil {
+			return err
+		}
+		d.Extra = own
 	case "reminders":
 		extra, err := a.reminderTab(r, d.Asset)
 		if err != nil {
@@ -290,4 +306,30 @@ func (a *App) CredentialCopy(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	_, _ = w.Write([]byte(pw))
+}
+
+type renewalView struct {
+	sqlc.Renewal
+	Documents []sqlc.Document
+}
+
+func (a *App) renewalsTab(r *http.Request, det asset.Detail) ([]renewalView, error) {
+	rows, err := a.Assets.Renewals(r.Context(), det.ID)
+	if err != nil {
+		return nil, err
+	}
+	_, docs, err := a.Documents.ListForAsset(r.Context(), det.ID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]renewalView, len(rows))
+	for i, rw := range rows {
+		out[i] = renewalView{Renewal: rw}
+		for _, d := range docs {
+			if d.RenewalID != nil && *d.RenewalID == rw.ID {
+				out[i].Documents = append(out[i].Documents, d)
+			}
+		}
+	}
+	return out, nil
 }

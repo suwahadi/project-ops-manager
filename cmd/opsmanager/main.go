@@ -22,6 +22,8 @@ import (
 	"github.com/suwahadi/project-ops-manager/internal/credential"
 	"github.com/suwahadi/project-ops-manager/internal/db"
 	"github.com/suwahadi/project-ops-manager/internal/db/sqlc"
+	"github.com/suwahadi/project-ops-manager/internal/document"
+	"github.com/suwahadi/project-ops-manager/internal/finance"
 	"github.com/suwahadi/project-ops-manager/internal/jobs"
 	"github.com/suwahadi/project-ops-manager/internal/markdown"
 	"github.com/suwahadi/project-ops-manager/internal/notify/email"
@@ -107,6 +109,8 @@ func serve(ctx context.Context, logger *slog.Logger) error {
 		Credentials: credential.NewService(pool, box),
 		Markdown:    markdown.New(),
 		Queries:     sqlc.New(pool),
+		Documents:   document.NewStore(cfg.UploadsDir, pool),
+		Finance:     finance.NewService(pool),
 		Telegram:    tgSender,
 		Email:       emailSender,
 		Now:         now,

@@ -17,6 +17,8 @@ import (
 	"github.com/suwahadi/project-ops-manager/internal/client"
 	"github.com/suwahadi/project-ops-manager/internal/credential"
 	"github.com/suwahadi/project-ops-manager/internal/db/sqlc"
+	"github.com/suwahadi/project-ops-manager/internal/document"
+	"github.com/suwahadi/project-ops-manager/internal/finance"
 	"github.com/suwahadi/project-ops-manager/internal/markdown"
 	"github.com/suwahadi/project-ops-manager/internal/provider"
 	"github.com/suwahadi/project-ops-manager/internal/reminder"
@@ -40,6 +42,8 @@ type Deps struct {
 	Credentials *credential.Service
 	Markdown    *markdown.Renderer
 	Queries     *sqlc.Queries
+	Documents   *document.Store
+	Finance     *finance.Service
 	Telegram    reminder.TelegramSender
 	Email       reminder.EmailSender
 	Now         func() time.Time

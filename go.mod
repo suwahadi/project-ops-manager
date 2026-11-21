@@ -3,12 +3,14 @@ module github.com/suwahadi/project-ops-manager
 go 1.27.4
 
 require (
+	github.com/HugoSmits86/nativewebp v1.3.0
 	github.com/jackc/pgx/v5 v5.13.0
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/pressly/goose/v3 v3.30.1
 	github.com/wneessen/go-mail v0.8.2
 	github.com/yuin/goldmark v1.8.7
 	golang.org/x/crypto v0.59.0
+	golang.org/x/image v0.48.0
 )
 
 require (

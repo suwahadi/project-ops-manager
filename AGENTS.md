@@ -88,6 +88,10 @@ The owner's answers to questions the PRD left open. They are as binding as the P
 | D22 | Reminder delivery | The dispatcher runs every 5 minutes. A separate retry job runs every minute, so the 1/5/15-minute backoff (REM-6) is honoured; both share one advisory lock. A pending log is dropped, not sent, if its asset is cancelled, its expiration date changed, the date passed or the channel was disabled. A log reaches `failed` after the initial attempt plus 3 retries. |
 | D23 | SMTP security | Port 465 uses implicit TLS. Every other port requires STARTTLS (`TLSMandatory`); plaintext SMTP is not supported. |
 | D24 | Dashboard failure banner (DSH-5) | The banner shows when the most recently finished reminder log is `failed`, linking to that asset's Reminders tab. Migration 00002 adds `reminder_logs.updated_at` and a `job_runs` table for job history. |
+| D25 | Aggregate margin | In every finance total (FIN-2/3/4, DSH-3), margin is the sum of `selling − cost` over items that have a selling price. Cost still includes Internal items, so a total's margin is not simply revenue − cost. |
+| D26 | Projection start | Projected occurrences start at an asset's current expiration date (n = 0), even if that date has already passed. An expired but uncancelled asset therefore still counts in the period that contains its expiration date. |
+| D27 | Uploads | Converted images keep their uploaded base name with a `.webp` extension. JPEG EXIF orientation is applied before metadata is stripped. At most 10 files per upload. Images over 60 megapixels are rejected. |
+| D28 | Renewals | The new expiration date must be after the current one. The renewal keeps the asset's currency. Documents uploaded in the renewal dialog belong to the renewal and are listed on the Renewals tab. |
 | D16 | Chromium network | The Compose network named `internal` publishes no ports but is not a Docker `internal: true` network, because Chromium must reach public websites to take screenshots. |
 
 When a new ambiguity appears, record the decision here in the same commit that implements it.

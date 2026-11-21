@@ -1,0 +1,94 @@
+{{define "content"}}
+{{$d := .Data}}{{$rep := $d.Report}}
+<div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+  <form method="get" action="/finance" class="flex flex-wrap items-end gap-3">
+    <div>
+      <label for="fin-view" class="label">View</label>
+      <select id="fin-view" name="view" class="input">
+        <option value="month"{{if eq $d.View "month"}} selected{{end}}>Month</option>
+        <option value="year"{{if eq $d.View "year"}} selected{{end}}>Year</option>
+      </select>
+    </div>
+    {{if eq $d.View "month"}}
+    <div><label for="fin-month" class="label">Month</label><input id="fin-month" type="month" name="month" value="{{$d.MonthValue}}" class="input"></div>
+    {{else}}
+    <div><label for="fin-year" class="label">Year</label>
+      <select id="fin-year" name="year" class="input">{{range $d.Years}}<option value="{{.}}"{{if eq . $d.Year}} selected{{end}}>{{.}}</option>{{end}}</select></div>
+    {{end}}
+    <button type="submit" class="btn-secondary">Show</button>
+  </form>
+  <div class="flex items-center gap-2">
+    <a href="{{$d.PrevHref}}" class="btn-ghost btn-sm" aria-label="Previous period">←</a>
+    <span class="text-base font-semibold">{{$rep.Period.Label}}</span>
+    <a href="{{$d.NextHref}}" class="btn-ghost btn-sm" aria-label="Next period">→</a>
+  </div>
+</div>
+<p class="mb-4 text-sm text-slate-600 dark:text-slate-400"><strong>Actual</strong> sums renewals paid in the period. <strong>Projected</strong> sums non-cancelled assets expiring in the period at current prices, including repeated renewals. IDR and USD are never combined. Margin counts only items with a selling price.</p>
+
+<div class="grid gap-6 lg:grid-cols-2">
+  {{template "fin_lines" (dict "Title" "Actual" "Lines" $rep.Actual "Empty" "No renewals were paid in this period.")}}
+  {{template "fin_lines" (dict "Title" "Projected" "Lines" $rep.Projected "Empty" "No assets expire in this period.")}}
+</div>
+
+<section class="mt-6 card"><div class="card-body">
+  <h2 class="mb-3 text-base font-semibold">Next 12 months (projected)</h2>
+  <div class="overflow-x-auto"><table class="table">
+    <thead><tr><th>Month</th><th>Currency</th><th class="text-right">Cost</th><th class="text-right">Revenue</th><th class="text-right">Margin</th><th class="text-right">Renewals</th></tr></thead>
+    <tbody>
+      {{range $d.Projection}}{{$m := .Month}}
+        {{range $i, $l := .Lines}}
+        <tr><td class="whitespace-nowrap">{{if eq $i 0}}<a href="/finance?view=month&month={{$m.Format "2006-01"}}" class="hover:underline">{{$m.Format "Jan 2006"}}</a>{{end}}</td><td>{{$l.Currency}}</td><td class="text-right whitespace-nowrap">{{money $l.Cost $l.Currency}}</td><td class="text-right whitespace-nowrap">{{money $l.Revenue $l.Currency}}</td><td class="text-right whitespace-nowrap">{{money $l.Margin $l.Currency}}</td><td class="text-right">{{$l.Count}}</td></tr>
+        {{else}}
+        <tr><td class="whitespace-nowrap">{{$m.Format "Jan 2006"}}</td><td colspan="5" class="text-slate-400">No renewals</td></tr>
+        {{end}}
+      {{end}}
+    </tbody>
+  </table></div>
+</div></section>
+
+<div class="mt-6 grid gap-6">
+  {{template "fin_breakdown" (dict "Title" "By client" "Rows" $rep.ByClient)}}
+  {{template "fin_breakdown" (dict "Title" "By asset type" "Rows" $rep.ByType)}}
+</div>
+{{end}}
+
+{{define "fin_lines"}}
+<section class="card"><div class="card-body">
+  <h2 class="mb-3 text-base font-semibold">{{.Title}}</h2>
+  {{if not .Lines}}<p class="text-sm text-slate-500 dark:text-slate-400">{{.Empty}}</p>{{else}}
+  <div class="grid gap-3 sm:grid-cols-2">
+    {{range .Lines}}
+    <div class="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+      <div class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{{.Currency}} · {{.Count}} {{plural .Count "item" "items"}}</div>
+      <dl class="space-y-1 text-sm">
+        <div class="flex justify-between gap-2"><dt class="text-slate-500 dark:text-slate-400">Cost</dt><dd class="font-medium">{{money .Cost .Currency}}</dd></div>
+        <div class="flex justify-between gap-2"><dt class="text-slate-500 dark:text-slate-400">Revenue</dt><dd class="font-medium">{{money .Revenue .Currency}}</dd></div>
+        <div class="flex justify-between gap-2"><dt class="text-slate-500 dark:text-slate-400">Margin</dt><dd class="font-semibold">{{money .Margin .Currency}}</dd></div>
+      </dl>
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+</div></section>
+{{end}}
+
+{{define "fin_breakdown"}}
+<section class="card"><div class="card-body">
+  <h2 class="mb-3 text-base font-semibold">{{.Title}}</h2>
+  {{if not .Rows}}<p class="text-sm text-slate-500 dark:text-slate-400">Nothing in this period.</p>{{else}}
+  <div class="overflow-x-auto"><table class="table">
+    <thead><tr><th>Name</th><th>Cur.</th><th class="text-right">Actual cost</th><th class="text-right">Actual margin</th><th class="text-right">Projected cost</th><th class="text-right">Projected revenue</th><th class="text-right">Projected margin</th></tr></thead>
+    <tbody>
+      {{range .Rows}}
+      <tr><td>{{.Name}}</td><td>{{.Currency}}</td>
+        <td class="text-right whitespace-nowrap">{{money .Actual.Cost .Currency}}</td>
+        <td class="text-right whitespace-nowrap">{{money .Actual.Margin .Currency}}</td>
+        <td class="text-right whitespace-nowrap">{{money .Projected.Cost .Currency}}</td>
+        <td class="text-right whitespace-nowrap">{{money .Projected.Revenue .Currency}}</td>
+        <td class="text-right whitespace-nowrap">{{money .Projected.Margin .Currency}}</td></tr>
+      {{end}}
+    </tbody>
+  </table></div>
+  {{end}}
+</div></section>
+{{end}}
