@@ -14,14 +14,15 @@ import (
 )
 
 type assetListData struct {
-	Filter      asset.Filter
-	Items       []asset.ListItem
-	Types       []assettype.Type
-	Providers   []sqlc.ListProvidersRow
-	Clients     []sqlc.ListClientOptionsRow
-	Statuses    []asset.Status
-	SortOptions []struct{ Value, Label string }
-	Filtered    bool
+	Filter        asset.Filter
+	Items         []asset.ListItem
+	Types         []assettype.Type
+	Providers     []sqlc.ListProvidersRow
+	Clients       []sqlc.ListClientOptionsRow
+	Statuses      []asset.Status
+	SortOptions   []struct{ Value, Label string }
+	Filtered      bool
+	ActiveFilters int
 }
 
 func filterFromQuery(q url.Values) asset.Filter {
@@ -86,6 +87,11 @@ func (a *App) AssetList(w http.ResponseWriter, r *http.Request) {
 	}
 	data := assetListData{Filter: f, Items: items, Statuses: asset.Statuses, SortOptions: asset.SortOptions,
 		Filtered: f.TypeID != "" || f.Status != "" || f.Owner != "" || f.ProviderID != "" || f.Query != ""}
+	for _, v := range []string{f.TypeID, f.Status, f.Owner, f.ProviderID, f.Sort} {
+		if v != "" {
+			data.ActiveFilters++
+		}
+	}
 	if isHTMX(r) && r.Header.Get("HX-Target") == "asset-results" {
 		a.fragment(w, r, http.StatusOK, "assets_list", "asset_results", data)
 		return

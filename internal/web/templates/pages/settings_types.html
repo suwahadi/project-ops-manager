@@ -1,14 +1,17 @@
 {{define "content"}}
 {{template "settings_tabs" .Data}}
-<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-  <p class="text-sm text-slate-600 dark:text-slate-400">Built-in types can be edited but not deleted.</p>
-  <a href="/settings/types/new" class="btn-primary">{{icon "plus"}}Add custom type</a>
+<div class="mb-4 flex justify-end">
+  <a href="/settings/types/new" class="btn-primary w-full sm:w-auto">{{icon "plus"}}Add custom type</a>
 </div>
 <ul class="card divide-y divide-slate-100 dark:divide-slate-800">
   {{range .Data.Body}}
-  <li><a href="/settings/types/{{.ID}}" class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50">
-    <span class="flex items-center gap-2">{{template "type_badge" (dict "Name" .Name "Icon" .Icon)}}{{if .Builtin}}<span class="badge-internal">Built-in</span>{{end}}</span>
-    <span class="text-sm text-slate-500 dark:text-slate-400">Reminders {{.OffsetsText}} days before · {{len .Fields}} {{plural (len .Fields) "field" "fields"}} · {{.AssetCount}} {{plural (int .AssetCount) "asset" "assets"}}</span>
+  <li><a href="/settings/types/{{.ID}}" class="list-row hover:bg-slate-50 dark:hover:bg-slate-800/50">
+    <span class="badge-row">{{template "type_badge" (dict "Name" .Name "Icon" .Icon)}}{{if .Builtin}}<span class="badge-internal">Built-in</span>{{end}}</span>
+    <span class="badge-row text-sm text-slate-500 dark:text-slate-400">
+      <span class="badge-outline">{{.OffsetsText}} days</span>
+      <span class="badge-outline">{{len .Fields}} {{plural (len .Fields) "field" "fields"}}</span>
+      <span class="badge-outline">{{.AssetCount}} {{plural (int .AssetCount) "asset" "assets"}}</span>
+    </span>
   </a></li>
   {{end}}
 </ul>

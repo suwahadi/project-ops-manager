@@ -32,9 +32,9 @@
 <div class="flex min-h-screen">
   <div id="drawer-backdrop" class="fixed inset-0 z-30 bg-slate-950/40 lg:hidden" data-drawer-close hidden></div>
   <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 hidden w-64 shrink-0 flex-col border-r border-slate-200 bg-white px-3 py-4 dark:border-slate-800 dark:bg-slate-900 lg:static lg:flex" data-drawer>
-    <div class="mb-6 flex items-center justify-between px-3">
+    <div class="mb-6 flex h-10 items-center justify-between px-3">
       <a href="/" class="text-lg font-semibold tracking-tight">Ops Manager</a>
-      <button type="button" class="btn-ghost btn-sm lg:hidden" data-drawer-close aria-label="Close menu">{{icon "close"}}</button>
+      <button type="button" class="btn-ghost btn-icon lg:hidden" data-drawer-close aria-label="Close menu">{{icon "close"}}</button>
     </div>
     <nav class="flex flex-1 flex-col gap-1" aria-label="Main">
       {{range navItems}}
@@ -48,8 +48,8 @@
   </aside>
   <div class="flex min-w-0 flex-1 flex-col">
     <header class="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-900/90">
-      <div class="mx-auto flex max-w-[1280px] items-center gap-3 px-4 py-3 sm:px-6">
-        <button type="button" class="btn-ghost btn-sm lg:hidden" data-drawer-open aria-label="Open menu">{{icon "menu" "h-5 w-5"}}</button>
+      <div class="mx-auto flex h-14 max-w-[1280px] items-center gap-2 px-4 sm:h-16 sm:gap-3 sm:px-6">
+        <button type="button" class="btn-ghost btn-icon -ml-2 lg:hidden" data-drawer-open aria-label="Open menu">{{icon "menu" "h-5 w-5"}}</button>
         <h1 class="min-w-0 flex-1 truncate text-lg font-semibold">{{.Title}}</h1>
         <form method="get" action="/search" class="hidden sm:block" role="search">
           <label for="global-search" class="sr-only">Search</label>
@@ -58,15 +58,14 @@
             <input id="global-search" type="search" name="q" placeholder="Search assets, clients, projects" class="input w-72 pl-8" value="{{.SearchQuery}}">
           </div>
         </form>
-        <a href="/search" class="btn-ghost btn-sm sm:hidden" aria-label="Search">{{icon "search" "h-5 w-5"}}</a>
-        <button type="button" class="btn-ghost btn-sm" data-theme-toggle aria-label="Theme: {{.Theme}}" title="Theme: {{.Theme}}">
-          <span data-theme-icon="light"{{if ne .Theme "light"}} hidden{{end}}>{{icon "sun" "h-5 w-5"}}</span>
-          <span data-theme-icon="dark"{{if ne .Theme "dark"}} hidden{{end}}>{{icon "moon" "h-5 w-5"}}</span>
-          <span data-theme-icon="system"{{if ne .Theme "system"}} hidden{{end}}>{{icon "monitor" "h-5 w-5"}}</span>
+        <a href="/search" class="btn-ghost btn-icon sm:hidden" aria-label="Search">{{icon "search" "h-5 w-5"}}</a>
+        <button type="button" class="btn-ghost btn-icon" data-theme-toggle aria-label="Toggle dark mode" title="Toggle dark mode">
+          <span class="dark:hidden">{{icon "moon" "h-5 w-5"}}</span>
+          <span class="hidden dark:inline">{{icon "sun" "h-5 w-5"}}</span>
         </button>
       </div>
     </header>
-    <main class="mx-auto w-full max-w-[1280px] flex-1 px-4 py-6 sm:px-6">
+    <main class="mx-auto w-full max-w-[1280px] flex-1 px-4 py-4 sm:px-6 sm:py-6">
       {{template "content" .}}
     </main>
   </div>

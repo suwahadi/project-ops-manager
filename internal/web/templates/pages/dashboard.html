@@ -1,38 +1,38 @@
 {{define "content"}}
 {{$d := .Data}}
 {{range $d.Banners}}
-<div class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100" role="alert">
+<div class="mb-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100" role="alert">
   <span class="flex items-center gap-2">{{icon "alert" "h-5 w-5"}}{{.Message}}</span>
   <a href="{{.Href}}" class="font-medium underline">{{.Link}}</a>
 </div>
 {{end}}
 
 {{if eq $d.TotalAssets 0}}
-<div class="card mb-6"><div class="card-body flex flex-col items-center gap-3 py-12 text-center">
+<div class="card mb-4 sm:mb-6"><div class="card-body flex flex-col items-center gap-4 py-12 text-center">
   <p class="text-base font-medium">Welcome to Ops Manager</p>
   <p class="max-w-md text-sm text-slate-600 dark:text-slate-400">Track every domain, hosting plan, VPS, certificate and license with an expiration date, and get reminded before it expires.</p>
   <a href="/assets/new" class="btn-primary">{{icon "plus"}}Add asset</a>
 </div></div>
 {{end}}
 
-<section class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Assets per status">
+<section class="mb-4 grid grid-cols-2 gap-3 sm:mb-6 sm:gap-4 lg:grid-cols-4" aria-label="Assets per status">
   {{range $d.Statuses}}
-  <a href="/assets?status={{.Status}}" class="card card-body flex flex-col gap-2 hover:border-indigo-300 dark:hover:border-indigo-700">
-    <span>{{template "status_badge" .Status}}</span>
-    <span class="text-3xl font-semibold tabular-nums">{{.Count}}</span>
+  <a href="/assets?status={{.Status}}" class="card flex flex-col items-start gap-2 p-4 hover:border-indigo-300 sm:p-5 dark:hover:border-indigo-700">
+    {{template "status_badge" .Status}}
+    <span class="text-2xl font-semibold tabular-nums sm:text-3xl">{{.Count}}</span>
   </a>
   {{end}}
 </section>
 
-<div class="mb-6 grid gap-6 lg:grid-cols-2">
+<div class="mb-4 grid gap-4 sm:mb-6 sm:gap-6 lg:grid-cols-2">
   {{template "dash_finance" $d.Month}}
   {{template "dash_finance" $d.Year}}
 </div>
 
-<div class="grid items-start gap-6 xl:grid-cols-3">
+<div class="grid items-start gap-4 sm:gap-6 xl:grid-cols-3">
   <section class="card xl:col-span-2"><div class="card-body">
-    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-      <h2 class="text-base font-semibold">Upcoming renewals</h2>
+    <div class="card-header mb-2">
+      <h2 class="card-title">Upcoming renewals</h2>
       <span class="text-sm text-slate-500 dark:text-slate-400">Expired and next 30 days</span>
     </div>
     {{if not $d.Upcoming}}
@@ -40,14 +40,13 @@
     {{else}}
     <ul class="divide-y divide-slate-100 dark:divide-slate-800">
       {{range $d.Upcoming}}
-      <li><a href="/assets/{{.ID}}" class="flex flex-wrap items-center justify-between gap-2 py-3 hover:opacity-80">
-        <span class="flex min-w-0 flex-wrap items-center gap-2">
-          <span class="font-medium">{{.Name}}</span>
-          {{template "type_badge" (dict "Name" .TypeName "Icon" .TypeIcon)}}
-          {{template "owner_badge" .ClientName}}
+      <li><a href="/assets/{{.ID}}" class="flex flex-col gap-2 py-3 hover:opacity-80 sm:flex-row sm:items-center sm:justify-between">
+        <span class="flex min-w-0 flex-col gap-1.5">
+          <span class="break-words font-medium">{{.Name}}</span>
+          <span class="badge-row">{{template "type_badge" (dict "Name" .TypeName "Icon" .TypeIcon)}}{{template "owner_badge" .ClientName}}</span>
         </span>
-        <span class="flex flex-wrap items-center gap-2 text-sm">
-          <span class="text-slate-500 dark:text-slate-400">{{date .ExpirationDate}}</span>
+        <span class="badge-row shrink-0 sm:justify-end">
+          <span class="text-sm text-slate-500 dark:text-slate-400">{{date .ExpirationDate}}</span>
           {{template "status_badge" .Status}}
           {{template "countdown_badge" .}}
         </span>
@@ -58,7 +57,7 @@
   </div></section>
 
   <section class="card"><div class="card-body">
-    <h2 class="mb-3 text-base font-semibold">Assets per type</h2>
+    <div class="card-header mb-2"><h2 class="card-title">Assets per type</h2></div>
     <ul class="divide-y divide-slate-100 dark:divide-slate-800">
       {{range $d.Types}}
       <li><a href="/assets?type={{.ID}}" class="flex items-center justify-between gap-2 py-2.5 hover:opacity-80">
@@ -73,28 +72,18 @@
 
 {{define "dash_finance"}}
 <section class="card"><div class="card-body">
-  <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-    <h2 class="text-base font-semibold">{{.Label}}</h2>
-    <a href="{{.Href}}" class="text-sm text-indigo-700 underline dark:text-indigo-300">Finance</a>
+  <div class="card-header">
+    <h2 class="card-title">{{.Label}}</h2>
+    <a href="{{.Href}}" class="btn-ghost btn-sm">Details</a>
   </div>
   {{if and (not .Actual) (not .Projected)}}
-    <p class="text-sm text-slate-500 dark:text-slate-400">No renewals paid or due in this period.</p>
+    <p class="section-desc">No renewals paid or due in this period.</p>
   {{else}}
   <div class="space-y-3">
-    {{range .Actual}}{{template "dash_line" (dict "Kind" "Actual" "Line" .)}}{{end}}
-    {{range .Projected}}{{template "dash_line" (dict "Kind" "Projected" "Line" .)}}{{end}}
+    {{range .Actual}}{{template "money_line" (dict "Kind" "Actual" "Line" .)}}{{end}}
+    {{range .Projected}}{{template "money_line" (dict "Kind" "Projected" "Line" .)}}{{end}}
   </div>
   {{end}}
 </div></section>
 {{end}}
 
-{{define "dash_line"}}{{$l := .Line}}
-<div class="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-  <div class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{.Kind}} · {{$l.Currency}}</div>
-  <dl class="grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
-    <div><dt class="text-xs text-slate-500 dark:text-slate-400">Cost</dt><dd class="whitespace-nowrap font-medium tabular-nums">{{money $l.Cost $l.Currency}}</dd></div>
-    <div><dt class="text-xs text-slate-500 dark:text-slate-400">Revenue</dt><dd class="whitespace-nowrap font-medium tabular-nums">{{money $l.Revenue $l.Currency}}</dd></div>
-    <div><dt class="text-xs text-slate-500 dark:text-slate-400">Margin</dt><dd class="whitespace-nowrap font-semibold tabular-nums">{{money $l.Margin $l.Currency}}</dd></div>
-  </dl>
-</div>
-{{end}}

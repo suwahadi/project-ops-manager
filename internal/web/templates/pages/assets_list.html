@@ -1,56 +1,59 @@
 {{define "content"}}
 {{$d := .Data}}
-<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-  <p class="text-sm text-slate-600 dark:text-slate-400">Everything with an expiration date.</p>
-  <a href="/assets/new" class="btn-primary">{{icon "plus"}}Add asset</a>
-</div>
 <form id="asset-filters" method="get" action="/assets" class="card mb-4"
       hx-get="/assets" hx-target="#asset-results" hx-push-url="true"
       hx-trigger="change, input changed delay:300ms from:#filter-q, submit">
-  <div class="card-body grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
-    <div class="lg:col-span-2">
-      <label for="filter-q" class="label">Search</label>
-      <input id="filter-q" type="search" name="q" value="{{$d.Filter.Query}}" placeholder="Name contains…" class="input">
+  <div class="card-body">
+    <div class="flex items-center gap-2">
+      <label for="filter-q" class="sr-only">Search assets</label>
+      <div class="relative min-w-0 flex-1">
+        <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">{{icon "search"}}</span>
+        <input id="filter-q" type="search" name="q" value="{{$d.Filter.Query}}" placeholder="Search by name" class="input pl-9">
+      </div>
+      <button type="button" class="btn-secondary md:hidden" data-collapse-toggle="filter-panel" aria-controls="filter-panel" aria-expanded="false">
+        {{icon "filter"}}<span class="sr-only sm:not-sr-only">Filters</span>{{if $d.ActiveFilters}}<span class="badge-owner h-5 px-1.5">{{$d.ActiveFilters}}</span>{{end}}
+      </button>
+      <a href="/assets/new" class="btn-primary btn-icon md:w-auto md:px-4" aria-label="Add asset">{{icon "plus"}}<span class="hidden md:inline">Add asset</span></a>
     </div>
-    <div>
-      <label for="filter-type" class="label">Type</label>
-      <select id="filter-type" name="type" class="input">
-        <option value="">All types</option>
-        {{range $d.Types}}<option value="{{.ID}}"{{if eq .ID $d.Filter.TypeID}} selected{{end}}>{{.Name}}</option>{{end}}
-      </select>
-    </div>
-    <div>
-      <label for="filter-status" class="label">Status</label>
-      <select id="filter-status" name="status" class="input">
-        <option value="">All statuses</option>
-        {{range $d.Statuses}}<option value="{{.}}"{{if eq (print .) $d.Filter.Status}} selected{{end}}>{{.Label}}</option>{{end}}
-      </select>
-    </div>
-    <div>
-      <label for="filter-owner" class="label">Owner</label>
-      <select id="filter-owner" name="owner" class="input">
-        <option value="">All owners</option>
-        <option value="internal"{{if eq $d.Filter.Owner "internal"}} selected{{end}}>Internal</option>
-        {{range $d.Clients}}<option value="{{.ID}}"{{if eq .ID $d.Filter.Owner}} selected{{end}}>{{.Name}}</option>{{end}}
-      </select>
-    </div>
-    <div>
-      <label for="filter-provider" class="label">Provider</label>
-      <select id="filter-provider" name="provider" class="input">
-        <option value="">All providers</option>
-        {{range $d.Providers}}<option value="{{.ID}}"{{if eq .ID $d.Filter.ProviderID}} selected{{end}}>{{.Name}}</option>{{end}}
-      </select>
-    </div>
-    <div class="sm:col-span-2 lg:col-span-6 flex flex-wrap items-end justify-between gap-3">
-      <div class="w-full sm:w-72">
+    <div id="filter-panel" class="mt-4 hidden gap-4 sm:grid-cols-2 md:grid md:grid-cols-5">
+      <div>
+        <label for="filter-type" class="label">Type</label>
+        <select id="filter-type" name="type" class="input">
+          <option value="">All types</option>
+          {{range $d.Types}}<option value="{{.ID}}"{{if eq .ID $d.Filter.TypeID}} selected{{end}}>{{.Name}}</option>{{end}}
+        </select>
+      </div>
+      <div>
+        <label for="filter-status" class="label">Status</label>
+        <select id="filter-status" name="status" class="input">
+          <option value="">All statuses</option>
+          {{range $d.Statuses}}<option value="{{.}}"{{if eq (print .) $d.Filter.Status}} selected{{end}}>{{.Label}}</option>{{end}}
+        </select>
+      </div>
+      <div>
+        <label for="filter-owner" class="label">Owner</label>
+        <select id="filter-owner" name="owner" class="input">
+          <option value="">All owners</option>
+          <option value="internal"{{if eq $d.Filter.Owner "internal"}} selected{{end}}>Internal</option>
+          {{range $d.Clients}}<option value="{{.ID}}"{{if eq .ID $d.Filter.Owner}} selected{{end}}>{{.Name}}</option>{{end}}
+        </select>
+      </div>
+      <div>
+        <label for="filter-provider" class="label">Provider</label>
+        <select id="filter-provider" name="provider" class="input">
+          <option value="">All providers</option>
+          {{range $d.Providers}}<option value="{{.ID}}"{{if eq .ID $d.Filter.ProviderID}} selected{{end}}>{{.Name}}</option>{{end}}
+        </select>
+      </div>
+      <div>
         <label for="filter-sort" class="label">Sort</label>
         <select id="filter-sort" name="sort" class="input">
           {{range $d.SortOptions}}<option value="{{.Value}}"{{if eq .Value $d.Filter.Sort}} selected{{end}}>{{.Label}}</option>{{end}}
         </select>
       </div>
-      <div class="flex gap-2">
+      <div class="flex gap-2 sm:col-span-2 md:col-span-5 md:justify-end">
         <noscript><button type="submit" class="btn-secondary">Apply</button></noscript>
-        <a href="/assets" class="btn-ghost">Reset filters</a>
+        <a href="/assets" class="btn-ghost w-full md:w-auto">Reset filters</a>
       </div>
     </div>
   </div>
@@ -68,7 +71,7 @@
       {{template "empty_state" (dict "Message" "No assets yet." "Href" "/assets/new" "Action" "Add asset")}}
     {{end}}
   {{else}}
-  <p class="mb-2 text-sm text-slate-500 dark:text-slate-400">{{len $d.Items}} {{plural (len $d.Items) "asset" "assets"}}</p>
+  <p class="mb-3 text-sm text-slate-500 dark:text-slate-400">{{len $d.Items}} {{plural (len $d.Items) "asset" "assets"}}</p>
   <div class="card hidden overflow-x-auto md:block">
     <table class="table">
       <thead><tr><th>Name</th><th>Type</th><th>Owner</th><th>Provider</th><th>Expires</th><th>Status</th><th class="text-right">Cost</th></tr></thead>
@@ -79,7 +82,7 @@
           <td>{{template "type_badge" (dict "Name" .TypeName "Icon" .TypeIcon)}}</td>
           <td>{{template "owner_badge" .ClientName}}</td>
           <td class="text-slate-600 dark:text-slate-300">{{.ProviderName}}</td>
-          <td><div class="whitespace-nowrap">{{date .Expiration}}</div><div class="mt-1">{{template "countdown_badge" .}}</div></td>
+          <td><div class="flex flex-col items-start gap-1"><span class="whitespace-nowrap">{{date .Expiration}}</span>{{template "countdown_badge" .}}</div></td>
           <td>{{template "status_badge" .Status}}</td>
           <td class="whitespace-nowrap text-right">{{money .Cost .Currency}}</td>
         </tr>
@@ -87,13 +90,12 @@
       </tbody>
     </table>
   </div>
-  <ul class="space-y-3 md:hidden">
+  <ul class="card divide-y divide-slate-100 md:hidden dark:divide-slate-800">
     {{range $d.Items}}
-    <li class="card"><a href="/assets/{{.ID}}" class="card-body block space-y-2">
-      <div class="flex items-start justify-between gap-2"><span class="font-medium">{{.Name}}</span>{{template "status_badge" .Status}}</div>
-      <div class="flex flex-wrap gap-2">{{template "type_badge" (dict "Name" .TypeName "Icon" .TypeIcon)}}{{template "owner_badge" .ClientName}}</div>
-      <div class="flex flex-wrap items-center justify-between gap-2 text-sm"><span>{{date .Expiration}}</span>{{template "countdown_badge" .}}</div>
-      <div class="text-sm text-slate-600 dark:text-slate-400">{{.ProviderName}} · {{money .Cost .Currency}}</div>
+    <li><a href="/assets/{{.ID}}" class="block space-y-2 px-4 py-3 active:bg-slate-50 dark:active:bg-slate-800/50">
+      <div class="flex items-start justify-between gap-2"><span class="min-w-0 break-words font-medium">{{.Name}}</span>{{template "status_badge" .Status}}</div>
+      <div class="badge-row">{{template "type_badge" (dict "Name" .TypeName "Icon" .TypeIcon)}}{{template "owner_badge" .ClientName}}{{template "countdown_badge" .}}</div>
+      <div class="flex justify-between gap-2 text-sm text-slate-500 dark:text-slate-400"><span>{{date .Expiration}} · {{.ProviderName}}</span><span class="whitespace-nowrap">{{money .Cost .Currency}}</span></div>
     </a></li>
     {{end}}
   </ul>

@@ -1,28 +1,29 @@
 {{define "content"}}
 {{template "settings_tabs" .Data}}
 {{$f := .Data.Body}}
-<section class="card max-w-xl">
-  <form method="post" action="/settings/general" class="card-body space-y-4">
+<section class="card max-w-2xl">
+  <form method="post" action="/settings/general" class="card-body">
     {{template "csrf" .CSRF}}
-    <div>
-      <label for="timezone" class="label">Timezone</label>
-      <input id="timezone" name="timezone" required class="input{{if $f.Errors.timezone}} input-error{{end}}" value="{{$f.Timezone}}" placeholder="Asia/Jakarta">
-      <p class="help">IANA name. Used for "today", reminder send time and the daily RDAP run.</p>
-      {{template "field_error" $f.Errors.timezone}}
+    <div class="form-grid">
+      <div class="sm:col-span-2">
+        <label for="timezone" class="label">Timezone</label>
+        <input id="timezone" name="timezone" required class="input{{if $f.Errors.timezone}} input-error{{end}}" value="{{$f.Timezone}}">
+        {{template "field_error" $f.Errors.timezone}}
+      </div>
+      <div>
+        <label for="send_time" class="label">Reminder send time</label>
+        <input id="send_time" name="send_time" type="time" required class="input{{if $f.Errors.send_time}} input-error{{end}}" value="{{$f.SendTime}}">
+        {{template "field_error" $f.Errors.send_time}}
+      </div>
+      <div>
+        <label for="default_currency" class="label">Default currency</label>
+        <select id="default_currency" name="default_currency" class="input">
+          {{range $f.Currencies}}<option value="{{.}}"{{if eq (print .) $f.Currency}} selected{{end}}>{{.}}</option>{{end}}
+        </select>
+        {{template "field_error" $f.Errors.default_currency}}
+      </div>
     </div>
-    <div>
-      <label for="send_time" class="label">Reminder send time</label>
-      <input id="send_time" name="send_time" type="time" required class="input{{if $f.Errors.send_time}} input-error{{end}}" value="{{$f.SendTime}}">
-      {{template "field_error" $f.Errors.send_time}}
-    </div>
-    <div>
-      <label for="default_currency" class="label">Default currency</label>
-      <select id="default_currency" name="default_currency" class="input">
-        {{range $f.Currencies}}<option value="{{.}}"{{if eq (print .) $f.Currency}} selected{{end}}>{{.}}</option>{{end}}
-      </select>
-      {{template "field_error" $f.Errors.default_currency}}
-    </div>
-    <button type="submit" class="btn-primary">Save</button>
+    <div class="form-actions"><button type="submit" class="btn-primary">Save</button></div>
   </form>
 </section>
 {{end}}

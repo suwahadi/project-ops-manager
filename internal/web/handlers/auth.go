@@ -28,7 +28,7 @@ func (a *App) renderLogin(w http.ResponseWriter, r *http.Request, status int, da
 		return
 	}
 	http.SetCookie(w, &http.Cookie{Name: middleware.LoginCSRFCookie, Value: token, Path: "/login", HttpOnly: true, Secure: a.Secure, SameSite: http.SameSiteStrictMode, MaxAge: 3600})
-	p := a.page(w, r, "Sign in", "", data)
+	p := a.page(w, r, "Login", "", data)
 	p.CSRF = token
 	if err := a.Render.Bare(w, status, "login", p); err != nil {
 		a.Logger.Error("render login", "error", err)

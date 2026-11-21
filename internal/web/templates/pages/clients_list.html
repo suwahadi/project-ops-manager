@@ -1,7 +1,6 @@
 {{define "content"}}
-<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-  <p class="text-sm text-slate-600 dark:text-slate-400">Owners of client assets and projects.</p>
-  <a href="/clients/new" class="btn-primary">{{icon "plus"}}Add client</a>
+<div class="mb-4 flex items-center justify-end">
+  <a href="/clients/new" class="btn-primary w-full sm:w-auto">{{icon "plus"}}Add client</a>
 </div>
 {{if not .Data}}
   {{template "empty_state" (dict "Message" "No clients yet." "Href" "/clients/new" "Action" "Add client")}}
@@ -16,19 +15,19 @@
         <td>{{or (deref .ContactPerson) "—"}}</td>
         <td>{{or (deref .Email) "—"}}</td>
         <td>{{or (deref .Phone) "—"}}</td>
-        <td class="text-right">{{.AssetCount}}</td>
-        <td class="text-right">{{.ProjectCount}}</td>
+        <td class="text-right tabular-nums">{{.AssetCount}}</td>
+        <td class="text-right tabular-nums">{{.ProjectCount}}</td>
       </tr>
       {{end}}
     </tbody>
   </table>
 </div>
-<ul class="space-y-3 md:hidden">
+<ul class="card divide-y divide-slate-100 md:hidden dark:divide-slate-800">
   {{range .Data}}
-  <li class="card"><a href="/clients/{{.ID}}" class="card-body block space-y-1">
+  <li><a href="/clients/{{.ID}}" class="block space-y-1.5 px-4 py-3 active:bg-slate-50 dark:active:bg-slate-800/50">
     <div class="font-medium">{{.Name}}</div>
-    {{with .ContactPerson}}<div class="text-sm text-slate-600 dark:text-slate-400">{{.}}</div>{{end}}
-    <div class="text-sm text-slate-500 dark:text-slate-400">{{.AssetCount}} {{plural (int .AssetCount) "asset" "assets"}} · {{.ProjectCount}} {{plural (int .ProjectCount) "project" "projects"}}</div>
+    {{if or .ContactPerson .Email}}<div class="truncate text-sm text-slate-500 dark:text-slate-400">{{deref .ContactPerson}}{{if and .ContactPerson .Email}} · {{end}}{{deref .Email}}</div>{{end}}
+    <div class="badge-row"><span class="badge-outline">{{.AssetCount}} {{plural (int .AssetCount) "asset" "assets"}}</span><span class="badge-outline">{{.ProjectCount}} {{plural (int .ProjectCount) "project" "projects"}}</span></div>
   </a></li>
   {{end}}
 </ul>

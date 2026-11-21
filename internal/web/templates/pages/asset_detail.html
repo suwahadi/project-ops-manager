@@ -1,21 +1,19 @@
 {{define "content"}}
 {{$d := .Data}}{{$a := $d.Asset}}{{$csrf := .CSRF}}
-<div class="mb-6 flex flex-wrap items-start justify-between gap-4">
-  <div class="min-w-0 space-y-2">
-    <a href="/assets" class="text-sm text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white">← Assets</a>
-    <div class="flex flex-wrap items-center gap-2">
-      {{template "status_badge" $a.Status}}
-      {{template "countdown_badge" $a}}
-      {{template "type_badge" (dict "Name" $a.TypeName "Icon" $a.TypeIcon)}}
-      {{template "owner_badge" $a.ClientName}}
-    </div>
+{{template "back_link" (dict "Href" "/assets" "Label" "Assets")}}
+<div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+  <div class="badge-row">
+    {{template "status_badge" $a.Status}}
+    {{template "countdown_badge" $a}}
+    {{template "type_badge" (dict "Name" $a.TypeName "Icon" $a.TypeIcon)}}
+    {{template "owner_badge" $a.ClientName}}
   </div>
-  <div class="flex flex-wrap gap-2">
-    <button type="button" class="btn-primary" data-confirm-open="renew-dialog">Mark as renewed</button>
+  <div class="page-actions">
+    <button type="button" class="btn-primary full" data-confirm-open="renew-dialog">Mark as renewed</button>
     <a href="/assets/{{$a.ID}}/edit" class="btn-secondary">Edit</a>
     <a href="/assets/new?from={{$a.ID}}" class="btn-secondary">Duplicate</a>
     {{if $a.CancelledAt}}
-      <form method="post" action="/assets/{{$a.ID}}/restore">{{template "csrf" $csrf}}<button type="submit" class="btn-secondary">Restore</button></form>
+      <form method="post" action="/assets/{{$a.ID}}/restore">{{template "csrf" $csrf}}<button type="submit" class="btn-secondary w-full">Restore</button></form>
     {{else}}
       {{template "confirm_button" (dict "ID" "cancel-asset" "Class" "btn-secondary" "Label" "Cancel asset" "Action" (print "/assets/" $a.ID "/cancel") "CSRF" $csrf "Title" "Cancel this asset?" "Body" "Reminders and RDAP sync stop until you restore it. Nothing is deleted." "Confirm" "Cancel asset" "Danger" true)}}
     {{end}}
@@ -23,7 +21,7 @@
   </div>
 </div>
 
-<nav class="mb-6 flex gap-1 overflow-x-auto border-b border-slate-200 dark:border-slate-800" aria-label="Asset sections">
+<nav class="tabs" aria-label="Asset sections">
   {{range $d.Tabs}}<a href="/assets/{{$a.ID}}?tab={{.Key}}" class="tab{{if eq .Key $d.Tab}} tab-active{{end}}"{{if eq .Key $d.Tab}} aria-current="page"{{end}}>{{.Label}}</a>{{end}}
 </nav>
 
@@ -40,9 +38,9 @@
 
 {{define "tab_overview"}}
 {{$d := .Data}}{{$a := $d.Asset}}
-<div class="grid items-start gap-6 lg:grid-cols-2">
+<div class="grid items-start gap-4 sm:gap-6 lg:grid-cols-2">
   <section class="card"><div class="card-body">
-    <h2 class="mb-2 text-base font-semibold">Details</h2>
+    <h2 class="card-title mb-2">Details</h2>
     <dl class="divide-y divide-slate-100 dark:divide-slate-800">
       {{template "dl_row" (dict "Label" "Type" "Value" $a.TypeName)}}
       {{template "dl_row" (dict "Label" "Provider" "Value" $a.ProviderName)}}
@@ -51,16 +49,16 @@
       {{template "dl_row" (dict "Label" "Expiration date" "Value" (date $a.ExpirationDate))}}
       {{template "dl_row" (dict "Label" "Renewal period" "Value" (print $a.RenewalPeriodMonths " " (plural (int $a.RenewalPeriodMonths) "month" "months")))}}
       {{template "dl_row" (dict "Label" "Auto-renew" "Value" (yesNo $a.AutoRenew))}}
-      <div class="grid grid-cols-3 gap-3 py-2.5">
-        <dt class="text-sm text-slate-500 dark:text-slate-400">URL</dt>
-        <dd class="col-span-2 min-w-0 break-words text-sm">{{with $a.Url}}<a href="{{.}}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-indigo-700 underline dark:text-indigo-300">{{.}}{{icon "external" "h-3.5 w-3.5"}}</a>{{else}}—{{end}}</dd>
+      <div class="grid grid-cols-5 gap-3 py-2.5 sm:grid-cols-3">
+        <dt class="col-span-2 text-sm text-slate-500 sm:col-span-1 dark:text-slate-400">URL</dt>
+        <dd class="col-span-3 min-w-0 break-all text-sm sm:col-span-2">{{with $a.Url}}<a href="{{.}}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-indigo-700 underline dark:text-indigo-300">{{.}}{{icon "external" "h-3.5 w-3.5"}}</a>{{else}}—{{end}}</dd>
       </div>
       {{if $a.CancelledAt}}{{template "dl_row" (dict "Label" "Cancelled at" "Value" (dateTime $a.CancelledAt.UTC $d.Location))}}{{end}}
     </dl>
   </div></section>
-  <div class="space-y-6">
+  <div class="space-y-4 sm:space-y-6">
     <section class="card"><div class="card-body">
-      <h2 class="mb-2 text-base font-semibold">Pricing per renewal period</h2>
+      <h2 class="card-title mb-2">Pricing per renewal period</h2>
       <dl class="divide-y divide-slate-100 dark:divide-slate-800">
         {{template "dl_row" (dict "Label" "Cost price" "Value" (money $a.CostPrice $a.Currency))}}
         {{template "dl_row" (dict "Label" "Selling price" "Value" (nullMoney $a.SellingPrice $a.Currency))}}
@@ -69,12 +67,12 @@
     </div></section>
     {{if $d.CustomFields}}
     <section class="card"><div class="card-body">
-      <h2 class="mb-2 text-base font-semibold">{{$a.TypeName}} details</h2>
+      <h2 class="card-title mb-2">{{$a.TypeName}} details</h2>
       <dl class="divide-y divide-slate-100 dark:divide-slate-800">
         {{range $d.CustomFields}}
-        <div class="grid grid-cols-3 gap-3 py-2.5">
-          <dt class="text-sm text-slate-500 dark:text-slate-400">{{.Label}}</dt>
-          <dd class="col-span-2 min-w-0 whitespace-pre-line break-words text-sm">{{if .URL}}<a href="{{.Value}}" target="_blank" rel="noopener noreferrer" class="text-indigo-700 underline dark:text-indigo-300">{{.Value}}</a>{{else}}{{.Value}}{{end}}</dd>
+        <div class="grid grid-cols-5 gap-3 py-2.5 sm:grid-cols-3">
+          <dt class="col-span-2 text-sm text-slate-500 sm:col-span-1 dark:text-slate-400">{{.Label}}</dt>
+          <dd class="col-span-3 min-w-0 whitespace-pre-line break-words text-sm sm:col-span-2">{{if .URL}}<a href="{{.Value}}" target="_blank" rel="noopener noreferrer" class="break-all text-indigo-700 underline dark:text-indigo-300">{{.Value}}</a>{{else}}{{.Value}}{{end}}</dd>
         </div>
         {{end}}
       </dl>
@@ -82,16 +80,19 @@
     {{end}}
     {{if and $a.SupportsRdap $a.RdapEnabled}}
     <section class="card"><div class="card-body">
-      <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <h2 class="text-base font-semibold">RDAP sync</h2>
-        {{if not $a.CancelledAt}}<form method="post" action="/assets/{{$a.ID}}/rdap">{{template "csrf" $.CSRF}}<button type="submit" class="btn-secondary btn-sm">{{icon "refresh"}}Check now</button></form>{{end}}
+      <div class="card-header mb-2">
+        <h2 class="card-title">RDAP sync</h2>
+        <div class="flex gap-2">
+          <a href="/rdap" class="btn-ghost btn-sm">Log</a>
+          {{if not $a.CancelledAt}}<form method="post" action="/assets/{{$a.ID}}/rdap">{{template "csrf" $.CSRF}}<button type="submit" class="btn-secondary btn-sm">{{icon "refresh" "h-3.5 w-3.5"}}Check now</button></form>{{end}}
+        </div>
       </div>
       <dl class="divide-y divide-slate-100 dark:divide-slate-800">
-        <div class="grid grid-cols-3 gap-3 py-2.5"><dt class="text-sm text-slate-500 dark:text-slate-400">Last result</dt><dd class="col-span-2 text-sm">{{template "rdap_badge" $a.RdapResult}}</dd></div>
+        <div class="grid grid-cols-5 gap-3 py-2.5 sm:grid-cols-3"><dt class="col-span-2 text-sm text-slate-500 sm:col-span-1 dark:text-slate-400">Last result</dt><dd class="col-span-3 sm:col-span-2">{{template "rdap_badge" $a.RdapResult}}</dd></div>
         {{template "dl_row" (dict "Label" "Last checked" "Value" (dateTimePtr $a.RdapCheckedAt $d.Location))}}
-        {{with $a.RdapError}}<div class="grid grid-cols-3 gap-3 py-2.5"><dt class="text-sm text-slate-500 dark:text-slate-400">Message</dt><dd class="col-span-2 break-words text-sm text-red-700 dark:text-red-400">{{.}}</dd></div>{{end}}
+        {{template "dl_row" (dict "Label" "Schedule" "Value" "Daily at 03:00")}}
+        {{with $a.RdapError}}<div class="grid grid-cols-5 gap-3 py-2.5 sm:grid-cols-3"><dt class="col-span-2 text-sm text-slate-500 sm:col-span-1 dark:text-slate-400">Message</dt><dd class="col-span-3 break-words text-sm text-red-700 sm:col-span-2 dark:text-red-400">{{.}}</dd></div>{{end}}
       </dl>
-      <p class="help mt-2">Runs daily at 03:00. A different registry date replaces the expiration date automatically. <a href="/rdap" class="underline">RDAP log</a></p>
     </div></section>
     {{end}}
   </div>
@@ -100,58 +101,63 @@
 
 {{define "tab_notes"}}
 {{$d := .Data}}{{$a := $d.Asset}}{{$csrf := .CSRF}}
-<div class="grid items-start gap-6 xl:grid-cols-2">
-  <section class="card"><div class="card-body space-y-4" data-tabs>
-    <div class="flex items-center justify-between gap-2">
-      <h2 class="text-base font-semibold">Notes</h2>
-      <div class="flex gap-1" role="tablist">
-        <button type="button" class="tab tab-active" data-tab-target="view" aria-selected="true">View</button>
-        <button type="button" class="tab" data-tab-target="edit" aria-selected="false">Edit</button>
+<div class="grid items-start gap-4 sm:gap-6 xl:grid-cols-2">
+  <section class="card"><div class="card-body" data-tabs>
+    <div class="card-header">
+      <h2 class="card-title">Notes</h2>
+      <div class="segmented" role="tablist">
+        <button type="button" class="segment segment-active" data-tab-target="view" aria-selected="true">View</button>
+        <button type="button" class="segment" data-tab-target="edit" aria-selected="false">Edit</button>
       </div>
     </div>
     <div data-tab-panel="view">
-      {{if $a.Notes}}<div class="prose-md">{{$d.NotesHTML}}</div>{{else}}<p class="text-sm text-slate-500 dark:text-slate-400">No notes yet. Use Edit to add DNS records, configuration or anything else.</p>{{end}}
+      {{if $a.Notes}}<div class="prose-md">{{$d.NotesHTML}}</div>{{else}}<p class="section-desc">No notes yet.</p>{{end}}
     </div>
-    <form data-tab-panel="edit" hidden method="post" action="/assets/{{$a.ID}}/notes" class="space-y-3" data-tabs>
+    <form data-tab-panel="edit" hidden method="post" action="/assets/{{$a.ID}}/notes" data-tabs>
       {{template "csrf" $csrf}}
-      <div class="flex gap-1" role="tablist">
-        <button type="button" class="tab tab-active" data-tab-target="write" aria-selected="true">Write</button>
-        <button type="button" class="tab" data-tab-target="preview" aria-selected="false" hx-post="/markdown/preview" hx-include="closest form" hx-target="#notes-preview">Preview</button>
+      <div class="mb-3 segmented" role="tablist">
+        <button type="button" class="segment segment-active" data-tab-target="write" aria-selected="true">Write</button>
+        <button type="button" class="segment" data-tab-target="preview" aria-selected="false" hx-post="/markdown/preview" hx-include="closest form" hx-target="#notes-preview">Preview</button>
       </div>
-      <div data-tab-panel="write"><label for="notes" class="sr-only">Notes (Markdown)</label><textarea id="notes" name="notes" rows="14" class="input font-mono">{{$a.Notes}}</textarea><p class="help">Markdown is supported.</p></div>
+      <div data-tab-panel="write"><label for="notes" class="sr-only">Notes</label><textarea id="notes" name="notes" rows="14" class="input font-mono">{{$a.Notes}}</textarea></div>
       <div data-tab-panel="preview" hidden><div id="notes-preview" class="prose-md min-h-24 rounded-lg border border-slate-200 p-3 dark:border-slate-700"></div></div>
-      <button type="submit" class="btn-primary">Save notes</button>
+      <div class="form-actions"><button type="submit" class="btn-primary">Save notes</button></div>
     </form>
   </div></section>
 
-  <section class="card"><div class="card-body space-y-4">
-    <div class="flex items-center justify-between gap-2">
-      <h2 class="text-base font-semibold">Credentials</h2>
-      <button type="button" class="btn-secondary btn-sm" data-confirm-open="cred-new">{{icon "plus"}}Add credential</button>
+  <section class="card"><div class="card-body">
+    <div class="card-header">
+      <h2 class="card-title">Credentials</h2>
+      <button type="button" class="btn-secondary btn-sm" data-confirm-open="cred-new">{{icon "plus" "h-3.5 w-3.5"}}Add credential</button>
     </div>
     {{if not $d.Credentials}}
-      <p class="text-sm text-slate-500 dark:text-slate-400">No credentials yet. <button type="button" class="text-indigo-700 underline dark:text-indigo-300" data-confirm-open="cred-new">Add credential</button></p>
+      <p class="section-desc">No credentials yet.</p>
     {{end}}
     <ul class="divide-y divide-slate-100 dark:divide-slate-800">
       {{range $d.Credentials}}
-      <li class="space-y-1 py-3">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <span class="font-medium">{{.Label}}</span>
-          <div class="flex gap-1">
+      <li class="space-y-2 py-3 first:pt-0 last:pb-0">
+        <div class="flex items-center justify-between gap-2">
+          <span class="min-w-0 truncate font-medium">{{.Label}}</span>
+          <div class="flex shrink-0 gap-1">
             <button type="button" class="btn-ghost btn-sm" data-confirm-open="cred-edit-{{.ID}}">Edit</button>
-            {{template "confirm_button" (dict "ID" (print "cred-del-" .ID) "Class" "btn-ghost btn-sm" "Label" "Delete" "Action" (print "/assets/" $a.ID "/credentials/" .ID "/delete") "CSRF" $csrf "Title" "Delete this credential?" "Body" "The stored password is removed permanently." "Confirm" "Delete" "Danger" true)}}
+            {{template "confirm_button" (dict "ID" (print "cred-del-" .ID) "Class" "btn-ghost btn-sm text-red-700 dark:text-red-400" "Label" "Delete" "Action" (print "/assets/" $a.ID "/credentials/" .ID "/delete") "CSRF" $csrf "Title" "Delete this credential?" "Body" "The stored password is removed permanently." "Confirm" "Delete" "Danger" true)}}
           </div>
         </div>
-        {{with .Url}}<div class="text-sm"><a href="{{.}}" target="_blank" rel="noopener noreferrer" class="break-all text-indigo-700 underline dark:text-indigo-300">{{.}}</a></div>{{end}}
-        {{with .Username}}<div class="text-sm"><span class="text-slate-500 dark:text-slate-400">Username:</span> <span class="font-mono">{{.}}</span></div>{{end}}
-        {{if .HasPassword}}
-        <div class="flex flex-wrap items-center gap-2 text-sm">
-          <span class="text-slate-500 dark:text-slate-400">Password:</span>
-          <span id="pw-{{.ID}}" class="font-mono">••••••••</span>
-          <button type="button" class="btn-ghost btn-sm" hx-post="/assets/{{$a.ID}}/credentials/{{.ID}}/reveal" hx-target="#pw-{{.ID}}" hx-swap="innerHTML">{{icon "eye"}}Reveal</button>
-          <button type="button" class="btn-ghost btn-sm" data-copy-url="/assets/{{$a.ID}}/credentials/{{.ID}}/copy">{{icon "copy"}}Copy</button>
-        </div>
-        {{end}}
+        <dl class="space-y-1.5 text-sm">
+          {{with .Url}}<div class="flex gap-3"><dt class="w-20 shrink-0 text-slate-500 dark:text-slate-400">URL</dt><dd class="min-w-0 break-all"><a href="{{.}}" target="_blank" rel="noopener noreferrer" class="text-indigo-700 underline dark:text-indigo-300">{{.}}</a></dd></div>{{end}}
+          {{with .Username}}<div class="flex gap-3"><dt class="w-20 shrink-0 text-slate-500 dark:text-slate-400">Username</dt><dd class="min-w-0 break-all font-mono">{{.}}</dd></div>{{end}}
+          {{if .HasPassword}}
+          <div class="flex items-center gap-3"><dt class="w-20 shrink-0 text-slate-500 dark:text-slate-400">Password</dt>
+            <dd class="flex min-w-0 flex-1 items-center justify-between gap-2">
+              <span id="pw-{{.ID}}" class="font-mono">••••••••</span>
+              <span class="flex gap-1">
+                <button type="button" class="btn-secondary btn-sm" aria-label="Reveal password" title="Reveal password" hx-post="/assets/{{$a.ID}}/credentials/{{.ID}}/reveal" hx-target="#pw-{{.ID}}" hx-swap="innerHTML">{{icon "eye" "h-3.5 w-3.5"}}<span class="hidden sm:inline">Reveal</span></button>
+                <button type="button" class="btn-secondary btn-sm" aria-label="Copy password" title="Copy password" data-copy-url="/assets/{{$a.ID}}/credentials/{{.ID}}/copy">{{icon "copy" "h-3.5 w-3.5"}}<span class="hidden sm:inline">Copy</span></button>
+              </span>
+            </dd>
+          </div>
+          {{end}}
+        </dl>
         {{with .Notes}}<p class="whitespace-pre-line text-sm text-slate-600 dark:text-slate-400">{{.}}</p>{{end}}
         {{template "credential_dialog" (dict "ID" (print "cred-edit-" .ID) "Action" (print "/assets/" $a.ID "/credentials/" .ID) "CSRF" $csrf "Title" "Edit credential" "Cred" . "Edit" true)}}
       </li>
@@ -164,19 +170,18 @@
 
 {{define "credential_dialog"}}
 <dialog id="{{.ID}}" class="modal" aria-labelledby="{{.ID}}-title">
-  <form method="post" action="{{.Action}}" class="card-body space-y-3" autocomplete="off">
+  <form method="post" action="{{.Action}}" class="card-body space-y-4" autocomplete="off">
     <input type="hidden" name="csrf_token" value="{{.CSRF}}">
     <h2 id="{{.ID}}-title" class="text-lg font-semibold">{{.Title}}</h2>
-    <div><label class="label" for="{{.ID}}-label">Label</label><input id="{{.ID}}-label" name="label" required class="input" value="{{with .Cred}}{{.Label}}{{end}}" placeholder="cPanel, Registrar account…"></div>
+    <div><label class="label" for="{{.ID}}-label">Label</label><input id="{{.ID}}-label" name="label" required class="input" value="{{with .Cred}}{{.Label}}{{end}}"></div>
     <div><label class="label" for="{{.ID}}-url">URL</label><input id="{{.ID}}-url" name="url" type="url" class="input" value="{{with .Cred}}{{deref .Url}}{{end}}"></div>
-    <div><label class="label" for="{{.ID}}-username">Username</label><input id="{{.ID}}-username" name="username" class="input" autocomplete="off" value="{{with .Cred}}{{deref .Username}}{{end}}"></div>
-    <div>
-      <label class="label" for="{{.ID}}-password">{{if .Edit}}New password <span class="text-slate-400">(leave blank to keep)</span>{{else}}Password{{end}}</label>
-      <input id="{{.ID}}-password" name="password" type="password" class="input" autocomplete="new-password">
-      {{if .Edit}}{{if .Cred.HasPassword}}<label class="mt-2 flex items-center gap-2 text-sm"><input type="checkbox" name="clear_password" value="1" class="h-4 w-4 rounded border-slate-300">Remove the stored password</label>{{end}}{{end}}
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div><label class="label" for="{{.ID}}-username">Username</label><input id="{{.ID}}-username" name="username" class="input" autocomplete="off" value="{{with .Cred}}{{deref .Username}}{{end}}"></div>
+      <div><label class="label" for="{{.ID}}-password">{{if .Edit}}New password{{else}}Password{{end}}</label><input id="{{.ID}}-password" name="password" type="password" class="input" autocomplete="new-password"></div>
     </div>
+    {{if .Edit}}{{if .Cred.HasPassword}}<label class="check"><input type="checkbox" name="clear_password" value="1">Remove the stored password</label>{{end}}{{end}}
     <div><label class="label" for="{{.ID}}-notes">Notes</label><textarea id="{{.ID}}-notes" name="notes" rows="2" class="input">{{with .Cred}}{{.Notes}}{{end}}</textarea></div>
-    <div class="flex justify-end gap-2">
+    <div class="modal-actions">
       <button type="button" class="btn-secondary" data-dialog-close>Cancel</button>
       <button type="submit" class="btn-primary">Save</button>
     </div>
@@ -188,41 +193,36 @@
 
 {{define "tab_reminders"}}
 {{$d := .Data}}{{$x := $d.Extra}}{{$loc := $d.Location}}
-<div class="space-y-6">
+<div class="space-y-4 sm:space-y-6">
   <section class="card"><div class="card-body">
-    <h2 class="mb-1 text-base font-semibold">Schedule for {{date $d.Asset.ExpirationDate}}</h2>
-    <p class="help mb-3">Sent at {{$x.SendTime}} on each day below. The last reminder is H-1; nothing is sent on or after the expiration date.</p>
+    <div class="card-header mb-2"><h2 class="card-title">Schedule</h2><span class="text-sm text-slate-500 dark:text-slate-400">Sent at {{$x.SendTime}} · expires {{date $d.Asset.ExpirationDate}}</span></div>
     {{if not $x.Channels}}
-      <p class="text-sm text-slate-600 dark:text-slate-400">No channel is enabled. <a href="/settings/notifications" class="text-indigo-700 underline dark:text-indigo-300">Configure notifications</a></p>
+      <p class="section-desc">No channel is enabled. <a href="/settings/notifications" class="text-indigo-700 underline dark:text-indigo-300">Configure notifications</a></p>
     {{end}}
-    <div class="overflow-x-auto"><table class="table">
-      <thead><tr><th>Offset</th><th>Send on</th>{{range $x.Channels}}<th>{{if eq . "telegram"}}Telegram{{else}}Email{{end}}</th>{{end}}</tr></thead>
-      <tbody>
-        {{range $x.Plan}}
-        <tr><td>H-{{.Offset}}</td><td class="whitespace-nowrap">{{date .Due}}</td>{{range .Cells}}<td><span class="{{.Class}}">{{.Status}}</span></td>{{end}}</tr>
-        {{end}}
-      </tbody>
-    </table></div>
+    <ul class="divide-y divide-slate-100 dark:divide-slate-800">
+      {{range $x.Plan}}
+      <li class="flex flex-wrap items-center justify-between gap-2 py-2.5">
+        <span class="flex items-center gap-3 text-sm"><span class="badge-outline w-12 justify-center">H-{{.Offset}}</span><span>{{date .Due}}</span></span>
+        <span class="badge-row">{{range .Cells}}<span class="{{.Class}}">{{if eq .Channel "telegram"}}Telegram{{else}}Email{{end}}: {{.Status}}</span>{{end}}</span>
+      </li>
+      {{end}}
+    </ul>
   </div></section>
   <section class="card"><div class="card-body">
-    <h2 class="mb-3 text-base font-semibold">Delivery log</h2>
-    {{if not $x.Logs}}<p class="text-sm text-slate-500 dark:text-slate-400">No reminders have been sent for this asset yet.</p>{{else}}
-    <div class="overflow-x-auto"><table class="table">
-      <thead><tr><th>Created</th><th>For expiry</th><th>Offset</th><th>Channel</th><th>Status</th><th>Attempts</th><th>Detail</th></tr></thead>
-      <tbody>
-        {{range $x.Logs}}
-        <tr>
-          <td class="whitespace-nowrap">{{dateTime .CreatedAt $loc}}</td>
-          <td class="whitespace-nowrap">{{date .ExpirationDate}}</td>
-          <td>H-{{.OffsetDays}}</td>
-          <td>{{if eq .Channel "telegram"}}Telegram{{else}}Email{{end}}</td>
-          <td>{{if eq .Status "sent"}}<span class="badge-active">Sent</span>{{else if eq .Status "failed"}}<span class="badge-expired">Failed</span>{{else}}<span class="badge-expiring">Pending</span>{{end}}</td>
-          <td>{{.Attempts}}</td>
-          <td class="max-w-xs break-words text-xs text-slate-600 dark:text-slate-400">{{if .SentAt}}Sent {{dateTime .SentAt.UTC $loc}}{{else}}{{deref .Error}}{{end}}</td>
-        </tr>
-        {{end}}
-      </tbody>
-    </table></div>
+    <h2 class="card-title mb-2">Delivery log</h2>
+    {{if not $x.Logs}}<p class="section-desc">No reminders have been sent for this asset yet.</p>{{else}}
+    <ul class="divide-y divide-slate-100 dark:divide-slate-800">
+      {{range $x.Logs}}
+      <li class="space-y-1 py-2.5 text-sm">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span class="badge-row"><span class="badge-outline">H-{{.OffsetDays}}</span><span class="badge-outline">{{if eq .Channel "telegram"}}Telegram{{else}}Email{{end}}</span>{{if eq .Status "sent"}}<span class="badge-active">Sent</span>{{else if eq .Status "failed"}}<span class="badge-expired">Failed</span>{{else}}<span class="badge-expiring">Pending</span>{{end}}</span>
+          <span class="text-slate-500 dark:text-slate-400">{{if .SentAt}}{{dateTime .SentAt.UTC $loc}}{{else}}{{dateTime .UpdatedAt $loc}}{{end}}</span>
+        </div>
+        <div class="text-slate-500 dark:text-slate-400">For expiry {{date .ExpirationDate}} · {{.Attempts}} {{plural (int .Attempts) "attempt" "attempts"}}</div>
+        {{with .Error}}<div class="break-words text-red-700 dark:text-red-400">{{.}}</div>{{end}}
+      </li>
+      {{end}}
+    </ul>
     {{end}}
   </div></section>
 </div>
@@ -233,21 +233,22 @@
 <form id="renew-form" method="post" action="/assets/{{$a.ID}}/renew" enctype="multipart/form-data" class="card-body space-y-4"
       hx-post="/assets/{{$a.ID}}/renew" hx-encoding="multipart/form-data" hx-target="this" hx-swap="outerHTML" novalidate>
   <input type="hidden" name="csrf_token" value="{{.CSRF}}">
-  <h2 id="renew-title" class="text-lg font-semibold">Mark {{$a.Name}} as renewed</h2>
-  <p class="text-sm text-slate-600 dark:text-slate-400">Current expiration: {{date $a.ExpirationDate}} · renews every {{$a.RenewalPeriodMonths}} {{plural (int $a.RenewalPeriodMonths) "month" "months"}}.</p>
+  <div>
+    <h2 id="renew-title" class="text-lg font-semibold">Mark as renewed</h2>
+    <p class="section-desc mt-1">{{$a.Name}} · expires {{date $a.ExpirationDate}}</p>
+  </div>
   <div class="grid gap-4 sm:grid-cols-2">
     <div><label class="label" for="rn-exp">New expiration date</label><input id="rn-exp" name="new_expiration" type="date" required class="input{{if $e.new_expiration}} input-error{{end}}" value="{{$f.NewExpiration}}">{{template "field_error" $e.new_expiration}}</div>
     <div><label class="label" for="rn-paid">Paid on</label><input id="rn-paid" name="paid_on" type="date" required class="input{{if $e.paid_on}} input-error{{end}}" value="{{$f.PaidOn}}">{{template "field_error" $e.paid_on}}</div>
     <div><label class="label" for="rn-cost">Cost price ({{$f.Currency}})</label><input id="rn-cost" name="cost_price" inputmode="decimal" required class="input{{if $e.cost_price}} input-error{{end}}" value="{{$f.Cost}}">{{template "field_error" $e.cost_price}}</div>
-    <div><label class="label" for="rn-sell">Selling price ({{$f.Currency}})</label><input id="rn-sell" name="selling_price" inputmode="decimal" class="input{{if $e.selling_price}} input-error{{end}}" value="{{$f.Selling}}"{{if $f.Internal}} placeholder="Internal asset — leave empty"{{end}}>{{template "field_error" $e.selling_price}}</div>
+    <div><label class="label" for="rn-sell">Selling price ({{$f.Currency}})</label><input id="rn-sell" name="selling_price" inputmode="decimal" class="input{{if $e.selling_price}} input-error{{end}}" value="{{$f.Selling}}"{{if $f.Internal}} disabled{{end}}>{{template "field_error" $e.selling_price}}</div>
   </div>
   <div>
-    <label class="label" for="rn-docs">Invoices or receipts <span class="text-slate-400">(optional)</span></label>
+    <label class="label" for="rn-docs">Documents</label>
     <input id="rn-docs" name="documents" type="file" multiple accept="application/pdf,image/jpeg,image/png,image/webp" class="input">
-    <p class="help">PDF, JPEG, PNG or WebP up to 20 MB each. Images are converted to WebP.</p>
     {{template "field_error" $e.documents}}
   </div>
-  <div class="flex justify-end gap-2">
+  <div class="modal-actions">
     <button type="button" class="btn-secondary" data-dialog-close>Cancel</button>
     <button type="submit" class="btn-primary">Save renewal<span class="htmx-indicator">…</span></button>
   </div>
@@ -257,8 +258,8 @@
 {{define "tab_renewals"}}
 {{$d := .Data}}{{$a := $d.Asset}}{{$csrf := .CSRF}}
 {{if not $d.Extra}}
-  <div class="card"><div class="card-body flex flex-col items-center gap-3 py-12 text-center">
-    <p class="text-sm text-slate-600 dark:text-slate-400">No renewals recorded yet.</p>
+  <div class="card"><div class="card-body flex flex-col items-center gap-4 py-12 text-center">
+    <p class="section-desc">No renewals recorded yet.</p>
     <button type="button" class="btn-primary" data-confirm-open="renew-dialog">Mark as renewed</button>
   </div></div>
 {{else}}
@@ -280,37 +281,39 @@
     </tbody>
   </table>
 </div>
-<ul class="space-y-3 md:hidden">
+<ul class="card divide-y divide-slate-100 md:hidden dark:divide-slate-800">
   {{range $d.Extra}}
-  <li class="card"><div class="card-body space-y-1 text-sm">
-    <div class="font-medium">Renewed on {{date .PaidOn}}</div>
-    <div>{{date .PreviousExpirationDate}} → {{date .NewExpirationDate}}</div>
-    <div>Cost {{money .CostPrice .Currency}} · Selling {{nullMoney .SellingPrice .Currency}} · Margin {{margin .CostPrice .SellingPrice .Currency}}</div>
-    {{template "doc_links" (dict "Docs" .Documents "CSRF" $csrf)}}
-  </div></li>
+  <li class="space-y-2 px-4 py-3 text-sm">
+    <div class="flex items-center justify-between gap-2"><span class="font-medium">{{date .PaidOn}}</span><span class="text-slate-500 dark:text-slate-400">{{date .PreviousExpirationDate}} → {{date .NewExpirationDate}}</span></div>
+    <dl class="grid grid-cols-3 gap-2">
+      <div><dt class="stat-label">Cost</dt><dd class="stat-value">{{money .CostPrice .Currency}}</dd></div>
+      <div><dt class="stat-label">Selling</dt><dd class="stat-value">{{nullMoney .SellingPrice .Currency}}</dd></div>
+      <div><dt class="stat-label">Margin</dt><dd class="stat-value">{{margin .CostPrice .SellingPrice .Currency}}</dd></div>
+    </dl>
+    {{if .Documents}}{{template "doc_links" (dict "Docs" .Documents "CSRF" $csrf)}}{{end}}
+  </li>
   {{end}}
 </ul>
 {{end}}
 {{end}}
 
 {{define "doc_links"}}
-{{if .Docs}}<ul class="space-y-1">{{range .Docs}}<li><a href="/documents/{{.ID}}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-indigo-700 underline dark:text-indigo-300">{{icon "file" "h-3.5 w-3.5"}}{{.OriginalName}}</a></li>{{end}}</ul>{{else}}<span class="text-slate-400">—</span>{{end}}
+{{if .Docs}}<ul class="space-y-1">{{range .Docs}}<li><a href="/documents/{{.ID}}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 break-all text-indigo-700 underline dark:text-indigo-300">{{icon "file" "h-3.5 w-3.5"}}{{.OriginalName}}</a></li>{{end}}</ul>{{else}}<span class="text-slate-400">—</span>{{end}}
 {{end}}
 
 {{define "tab_documents"}}
 {{$d := .Data}}{{$a := $d.Asset}}{{$csrf := .CSRF}}{{$loc := $d.Location}}
-<div class="grid items-start gap-6 lg:grid-cols-3">
-  <section class="card lg:order-2"><form method="post" action="/assets/{{$a.ID}}/documents" enctype="multipart/form-data" class="card-body space-y-3">
+<div class="grid items-start gap-4 sm:gap-6 lg:grid-cols-3">
+  <section class="card lg:order-2"><form method="post" action="/assets/{{$a.ID}}/documents" enctype="multipart/form-data" class="card-body">
     {{template "csrf" $csrf}}
-    <h2 class="text-base font-semibold">Upload documents</h2>
+    <h2 class="card-title mb-4">Upload documents</h2>
     <label class="label" for="doc-files">Files</label>
     <input id="doc-files" name="documents" type="file" multiple required accept="application/pdf,image/jpeg,image/png,image/webp" class="input">
-    <p class="help">PDF, JPEG, PNG or WebP up to 20 MB each. Images are converted to WebP and stripped of metadata.</p>
-    <button type="submit" class="btn-primary">Upload</button>
+    <div class="form-actions"><button type="submit" class="btn-primary w-full sm:w-auto">Upload</button></div>
   </form></section>
   <section class="lg:order-1 lg:col-span-2">
     {{if not $d.Extra}}
-      <div class="card"><div class="card-body py-12 text-center text-sm text-slate-600 dark:text-slate-400">No documents yet. Upload invoices or receipts with the form. Renewal documents are listed on the Renewals tab.</div></div>
+      <div class="card"><div class="card-body py-12 text-center"><p class="section-desc">No documents yet.</p></div></div>
     {{else}}
     <ul class="grid gap-4 sm:grid-cols-2">
       {{range $d.Extra}}
@@ -318,14 +321,16 @@
         {{if eq .ContentType "image/webp"}}
           <a href="/documents/{{.ID}}" target="_blank" rel="noopener"><img src="/documents/{{.ID}}" alt="{{.OriginalName}}" class="h-40 w-full bg-slate-100 object-contain dark:bg-slate-800" loading="lazy"></a>
         {{else}}
-          <a href="/documents/{{.ID}}" target="_blank" rel="noopener" class="flex h-40 items-center justify-center bg-slate-100 text-slate-500 dark:bg-slate-800">{{icon "file" "h-10 w-10"}}<span class="ml-2 text-sm">PDF · open in new tab</span></a>
+          <a href="/documents/{{.ID}}" target="_blank" rel="noopener" class="flex h-40 flex-col items-center justify-center gap-2 bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">{{icon "file" "h-10 w-10"}}<span class="text-xs">PDF</span></a>
         {{end}}
-        <div class="space-y-1 p-3 text-sm">
-          <div class="break-all font-medium">{{.OriginalName}}</div>
-          <div class="text-slate-500 dark:text-slate-400">{{bytes .SizeBytes}} · {{dateTime .CreatedAt $loc}}</div>
-          <div class="flex gap-1">
-            <a href="/documents/{{.ID}}?download=1" class="btn-ghost btn-sm">Download</a>
-            {{template "confirm_button" (dict "ID" (print "doc-del-" .ID) "Class" "btn-ghost btn-sm" "Label" "Delete" "Action" (print "/documents/" .ID "/delete") "CSRF" $csrf "Title" "Delete this document?" "Body" .OriginalName "Confirm" "Delete" "Danger" true)}}
+        <div class="space-y-3 p-4">
+          <div>
+            <div class="break-all text-sm font-medium">{{.OriginalName}}</div>
+            <div class="text-xs text-slate-500 dark:text-slate-400">{{bytes .SizeBytes}} · {{dateTime .CreatedAt $loc}}</div>
+          </div>
+          <div class="flex gap-2">
+            <a href="/documents/{{.ID}}?download=1" class="btn-secondary btn-sm">Download</a>
+            {{template "confirm_button" (dict "ID" (print "doc-del-" .ID) "Class" "btn-ghost btn-sm text-red-700 dark:text-red-400" "Label" "Delete" "Action" (print "/documents/" .ID "/delete") "CSRF" $csrf "Title" "Delete this document?" "Body" .OriginalName "Confirm" "Delete" "Danger" true)}}
           </div>
         </div>
       </li>
@@ -342,7 +347,7 @@
   {{template "empty_state" (dict "Message" "This asset is not linked to any project." "Href" "/projects/new" "Action" "Add project")}}
 {{else}}
 <ul class="card divide-y divide-slate-100 dark:divide-slate-800">
-  {{range $d.Extra}}<li><a href="/projects/{{.ID}}" class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50"><span class="font-medium">{{.Name}}</span><span class="flex items-center gap-2 text-sm">{{template "owner_badge" .ClientName}}<span class="text-slate-500 dark:text-slate-400">{{deref .Url}}</span></span></a></li>{{end}}
+  {{range $d.Extra}}<li><a href="/projects/{{.ID}}" class="list-row hover:bg-slate-50 dark:hover:bg-slate-800/50"><span class="font-medium">{{.Name}}</span><span class="flex min-w-0 items-center gap-2 text-sm">{{template "owner_badge" .ClientName}}<span class="truncate text-slate-500 dark:text-slate-400">{{deref .Url}}</span></span></a></li>{{end}}
 </ul>
 {{end}}
 {{end}}

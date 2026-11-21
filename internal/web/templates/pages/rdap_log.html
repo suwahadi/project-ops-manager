@@ -1,10 +1,9 @@
 {{define "content"}}
 {{$d := .Data}}{{$loc := $d.Location}}
-<p class="mb-4 text-sm text-slate-600 dark:text-slate-400">RDAP sync checks every non-cancelled Domain asset with RDAP sync on, daily at 03:00 in the Settings timezone, at most one request per second per registry server.</p>
-<div class="grid items-start gap-6 xl:grid-cols-2">
+<div class="grid items-start gap-4 sm:gap-6 xl:grid-cols-2">
   <section class="card"><div class="card-body">
-    <h2 class="mb-3 text-base font-semibold">Recent runs</h2>
-    {{if not $d.Runs}}<p class="text-sm text-slate-500 dark:text-slate-400">No runs yet. The first run happens at 03:00.</p>{{else}}
+    <div class="card-header mb-2"><h2 class="card-title">Recent runs</h2><span class="text-sm text-slate-500 dark:text-slate-400">Daily at 03:00</span></div>
+    {{if not $d.Runs}}<p class="section-desc">No runs yet.</p>{{else}}
     <ul class="divide-y divide-slate-100 dark:divide-slate-800">
       {{range $d.Runs}}
       <li class="space-y-1 py-3 text-sm">
@@ -17,7 +16,7 @@
     {{end}}
   </div></section>
   <section class="card"><div class="card-body">
-    <h2 class="mb-3 text-base font-semibold">Domains</h2>
+    <h2 class="card-title mb-2">Domains</h2>
     {{if not $d.Domains}}<p class="text-sm text-slate-500 dark:text-slate-400">No domains with RDAP sync on. <a href="/assets/new" class="text-indigo-700 underline dark:text-indigo-300">Add asset</a></p>{{else}}
     <ul class="divide-y divide-slate-100 dark:divide-slate-800">
       {{range $d.Domains}}

@@ -1,18 +1,20 @@
 (function () {
   "use strict";
 
-  var themes = ["system", "light", "dark"];
+  function isDark() {
+    var current = document.documentElement.getAttribute("data-theme");
+    if (current === "dark") {
+      return true;
+    }
+    if (current === "light") {
+      return false;
+    }
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
 
   function setTheme(theme) {
     document.documentElement.setAttribute("data-theme", theme);
     document.cookie = "ops_theme=" + theme + "; path=/; max-age=31536000; samesite=lax" + (location.protocol === "https:" ? "; secure" : "");
-    document.querySelectorAll("[data-theme-icon]").forEach(function (el) {
-      el.hidden = el.getAttribute("data-theme-icon") !== theme;
-    });
-    document.querySelectorAll("[data-theme-toggle]").forEach(function (el) {
-      el.setAttribute("aria-label", "Theme: " + theme);
-      el.setAttribute("title", "Theme: " + theme);
-    });
   }
 
   function showToast(message, kind) {
@@ -69,8 +71,7 @@
     }
     var toggle = t.closest("[data-theme-toggle]");
     if (toggle) {
-      var current = document.documentElement.getAttribute("data-theme") || "system";
-      setTheme(themes[(themes.indexOf(current) + 1) % themes.length]);
+      setTheme(isDark() ? "light" : "dark");
       return;
     }
     if (t.closest("[data-drawer-open]")) {
@@ -119,19 +120,57 @@
       });
       return;
     }
+    var collapse = t.closest("[data-collapse-toggle]");
+    if (collapse) {
+      var panel = document.getElementById(collapse.getAttribute("data-collapse-toggle"));
+      if (panel) {
+        var nowHidden = panel.classList.toggle("hidden");
+        collapse.setAttribute("aria-expanded", nowHidden ? "false" : "true");
+      }
+      return;
+    }
     var tabBtn = t.closest("[data-tab-target]");
     if (tabBtn) {
       var group = tabBtn.closest("[data-tabs]");
       if (group) {
         ownedBy(group, "[data-tab-target]").forEach(function (b) {
           var active = b === tabBtn;
-          b.classList.toggle("tab-active", active);
+          b.classList.toggle(b.classList.contains("segment") ? "segment-active" : "tab-active", active);
           b.setAttribute("aria-selected", active ? "true" : "false");
         });
         ownedBy(group, "[data-tab-panel]").forEach(function (p) {
           p.hidden = p.getAttribute("data-tab-panel") !== tabBtn.getAttribute("data-tab-target");
         });
       }
+    }
+  });
+
+  function applyShowIf(root) {
+    within(root, "[data-show-if]").forEach(function (el) {
+      var spec = el.getAttribute("data-show-if").split(":");
+      var src = document.getElementById(spec[0]);
+      if (!src) {
+        return;
+      }
+      var show = spec[1].split(",").indexOf(src.value) !== -1;
+      el.hidden = !show;
+      el.querySelectorAll("input, select, textarea").forEach(function (f) {
+        f.disabled = !show;
+      });
+    });
+  }
+
+  document.addEventListener("change", function (e) {
+    var t = e.target;
+    if (t instanceof Element) {
+      var auto = t.closest("form[data-autosubmit]");
+      if (auto && auto.requestSubmit) {
+        auto.requestSubmit();
+        return;
+      }
+    }
+    if (t instanceof Element && t.id && document.querySelector('[data-show-if^="' + t.id + ':"]')) {
+      applyShowIf(document);
     }
   });
 
@@ -202,11 +241,13 @@
     document.querySelectorAll("[data-toast]").forEach(scheduleDismiss);
     initRevealTimers(document);
     initDialogs(document);
+    applyShowIf(document);
   });
 
   document.addEventListener("htmx:load", function (e) {
     initRevealTimers(e.target);
     initDialogs(e.target);
+    applyShowIf(document);
   });
 
   document.addEventListener("showToast", function (e) {

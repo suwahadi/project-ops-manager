@@ -1,58 +1,61 @@
 {{define "content"}}
 {{$d := .Data}}{{$e := $d.Errors}}
-<form method="post" action="{{if $d.IsEdit}}/projects/{{$d.ID}}{{else}}/projects{{end}}" class="space-y-6" novalidate>
+{{template "back_link" (dict "Href" (or (and $d.IsEdit (print "/projects/" $d.ID)) "/projects") "Label" (or (and $d.IsEdit "Project") "Projects"))}}
+<form method="post" action="{{if $d.IsEdit}}/projects/{{$d.ID}}{{else}}/projects{{end}}" class="space-y-4 sm:space-y-6" novalidate>
   {{template "csrf" .CSRF}}
-  <section class="card"><div class="card-body grid gap-4 md:grid-cols-2">
-    <div>
-      <label for="name" class="label">Name</label>
-      <input id="name" name="name" required class="input{{if $e.name}} input-error{{end}}" value="{{$d.Name}}" autofocus>
-      {{template "field_error" $e.name}}
-    </div>
-    <div>
-      <label for="owner" class="label">Owner</label>
-      <select id="owner" name="owner" class="input{{if $e.owner}} input-error{{end}}">
-        <option value="internal"{{if eq $d.Owner "internal"}} selected{{end}}>Internal</option>
-        {{range $d.Clients}}<option value="{{.ID}}"{{if eq .ID $d.Owner}} selected{{end}}>{{.Name}}</option>{{end}}
-      </select>
-      {{template "field_error" $e.owner}}
-    </div>
-    <div class="md:col-span-2">
-      <label for="url" class="label">Website URL</label>
-      <input id="url" name="url" type="url" class="input{{if $e.url}} input-error{{end}}" value="{{$d.URL}}" placeholder="https://example.com">
-      <p class="help">A screenshot is captured when the project is created with a URL and whenever the URL changes.</p>
-      {{template "field_error" $e.url}}
+  <section class="card"><div class="card-body">
+    <h2 class="card-title mb-4">Project</h2>
+    <div class="form-grid">
+      <div>
+        <label for="name" class="label">Name</label>
+        <input id="name" name="name" required class="input{{if $e.name}} input-error{{end}}" value="{{$d.Name}}" autofocus>
+        {{template "field_error" $e.name}}
+      </div>
+      <div>
+        <label for="owner" class="label">Owner</label>
+        <select id="owner" name="owner" class="input{{if $e.owner}} input-error{{end}}">
+          <option value="internal"{{if eq $d.Owner "internal"}} selected{{end}}>Internal</option>
+          {{range $d.Clients}}<option value="{{.ID}}"{{if eq .ID $d.Owner}} selected{{end}}>{{.Name}}</option>{{end}}
+        </select>
+        {{template "field_error" $e.owner}}
+      </div>
+      <div class="sm:col-span-2">
+        <label for="url" class="label">Website URL</label>
+        <input id="url" name="url" type="url" class="input{{if $e.url}} input-error{{end}}" value="{{$d.URL}}">
+        {{template "field_error" $e.url}}
+      </div>
     </div>
   </div></section>
 
-  <section class="card"><div class="card-body space-y-3" data-tabs>
-    <div class="flex flex-wrap items-center justify-between gap-2">
-      <h2 class="text-base font-semibold">Brief</h2>
-      <div class="flex gap-1" role="tablist">
-        <button type="button" class="tab tab-active" data-tab-target="write" aria-selected="true">Write</button>
-        <button type="button" class="tab" data-tab-target="preview" aria-selected="false" hx-post="/markdown/preview" hx-include="#brief" hx-target="#brief-preview">Preview</button>
+  <section class="card"><div class="card-body" data-tabs>
+    <div class="card-header">
+      <h2 class="card-title">Brief</h2>
+      <div class="segmented" role="tablist">
+        <button type="button" class="segment segment-active" data-tab-target="write" aria-selected="true">Write</button>
+        <button type="button" class="segment" data-tab-target="preview" aria-selected="false" hx-post="/markdown/preview" hx-include="#brief" hx-target="#brief-preview">Preview</button>
       </div>
     </div>
-    <div data-tab-panel="write"><label for="brief" class="sr-only">Brief (Markdown)</label><textarea id="brief" name="brief" rows="16" class="input font-mono">{{$d.Brief}}</textarea><p class="help">Markdown is supported.</p></div>
+    <div data-tab-panel="write"><label for="brief" class="sr-only">Brief</label><textarea id="brief" name="brief" rows="16" class="input font-mono">{{$d.Brief}}</textarea></div>
     <div data-tab-panel="preview" hidden><div id="brief-preview" class="prose-md min-h-24 rounded-lg border border-slate-200 p-3 dark:border-slate-700"></div></div>
   </div></section>
 
-  <section class="card"><div class="card-body space-y-3">
-    <h2 class="text-base font-semibold">Linked assets</h2>
+  <section class="card"><div class="card-body">
+    <h2 class="card-title mb-4">Linked assets</h2>
     {{if not $d.Assets}}
-      <p class="text-sm text-slate-500 dark:text-slate-400">No assets yet. <a href="/assets/new" class="text-indigo-700 underline dark:text-indigo-300">Add asset</a></p>
+      <p class="section-desc">No assets yet. <a href="/assets/new" class="text-indigo-700 underline dark:text-indigo-300">Add asset</a></p>
     {{else}}
-    <ul class="max-h-72 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-700">
+    <ul class="max-h-80 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-700">
       {{range $d.Assets}}
-      <li><label class="flex items-center gap-3 px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/50">
-        <input type="checkbox" name="asset_ids" value="{{.ID}}" class="h-4 w-4 rounded border-slate-300"{{if contains $d.AssetIDs .ID}} checked{{end}}>
-        <span class="flex-1">{{.Name}}</span><span class="text-xs text-slate-500 dark:text-slate-400">{{.TypeName}}</span>
+      <li><label class="flex min-h-11 items-center gap-3 px-3 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/50">
+        <input type="checkbox" name="asset_ids" value="{{.ID}}" class="h-4 w-4 shrink-0 rounded border-slate-300 accent-indigo-600"{{if contains $d.AssetIDs .ID}} checked{{end}}>
+        <span class="min-w-0 flex-1 truncate">{{.Name}}</span><span class="badge-outline">{{.TypeName}}</span>
       </label></li>
       {{end}}
     </ul>
     {{end}}
   </div></section>
 
-  <div class="flex flex-wrap justify-end gap-2">
+  <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
     <a href="{{if $d.IsEdit}}/projects/{{$d.ID}}{{else}}/projects{{end}}" class="btn-secondary">Cancel</a>
     <button type="submit" class="btn-primary">{{if $d.IsEdit}}Save changes{{else}}Create project{{end}}</button>
   </div>

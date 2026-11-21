@@ -2,10 +2,9 @@
 <main class="flex min-h-screen items-center justify-center px-4">
   <div class="card w-full max-w-sm">
     <div class="card-body">
-      <h1 class="mb-1 text-xl font-semibold">Ops Manager</h1>
-      <p class="mb-6 text-sm text-slate-600 dark:text-slate-400">Sign in to continue.</p>
+      <h1 class="mb-6 text-center text-2xl font-semibold">Login</h1>
       {{with .Data.Error}}<div class="mb-4 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200" role="alert">{{.}}</div>{{end}}
-      <form method="post" action="/login" class="space-y-4">
+      <form method="post" action="/login" class="space-y-5">
         <input type="hidden" name="csrf_token" value="{{.CSRF}}">
         <div>
           <label for="email" class="label">Email</label>
@@ -15,7 +14,7 @@
           <label for="password" class="label">Password</label>
           <input id="password" name="password" type="password" autocomplete="current-password" required class="input">
         </div>
-        <button type="submit" class="btn-primary w-full">Sign in</button>
+        <button type="submit" class="btn-primary w-full">Login</button>
       </form>
     </div>
   </div>

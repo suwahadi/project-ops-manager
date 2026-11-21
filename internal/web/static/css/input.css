@@ -35,11 +35,11 @@
 }
 
 @utility btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:opacity-50 dark:focus-visible:ring-offset-slate-950 cursor-pointer;
+  @apply inline-flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-transparent px-4 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:focus-visible:ring-offset-slate-950 cursor-pointer;
 }
 
 @utility badge {
-  @apply inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium;
+  @apply inline-flex h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-transparent px-2.5 text-xs font-medium leading-none;
 }
 
 @utility toast {
@@ -53,11 +53,20 @@
   .card-body {
     @apply p-4 sm:p-6;
   }
+  .card-title {
+    @apply text-base font-semibold;
+  }
+  .card-header {
+    @apply mb-4 flex min-h-8 flex-wrap items-center justify-between gap-3;
+  }
+  .section-desc {
+    @apply text-sm text-slate-600 dark:text-slate-400;
+  }
   .btn-primary {
     @apply btn bg-indigo-600 text-white hover:bg-indigo-700;
   }
   .btn-secondary {
-    @apply btn border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800;
+    @apply btn border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800;
   }
   .btn-danger {
     @apply btn bg-red-600 text-white hover:bg-red-700;
@@ -66,22 +75,49 @@
     @apply btn text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800;
   }
   .btn-sm {
-    @apply px-2.5 py-1.5 text-xs;
+    @apply h-8 gap-1.5 px-3 text-xs;
+  }
+  .btn-icon {
+    @apply h-10 w-10 px-0;
+  }
+  .form-actions {
+    @apply mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-slate-100 pt-4 dark:border-slate-800;
+  }
+  .page-actions {
+    @apply grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:justify-end;
+  }
+  .page-actions > .btn-primary, .page-actions > .btn-secondary, .page-actions > .btn-danger, .page-actions > form > button, .page-actions > button {
+    @apply w-full sm:w-auto;
+  }
+  .page-actions > .full {
+    @apply col-span-2;
   }
   .input {
-    @apply block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100;
+    @apply block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100;
+  }
+  textarea.input {
+    @apply h-auto py-2;
+  }
+  input[type=file].input {
+    @apply py-1.5 file:mr-3 file:h-7 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:text-xs file:font-medium file:text-slate-700 dark:file:bg-slate-800 dark:file:text-slate-200;
   }
   .input-error {
     @apply border-red-500 focus:border-red-500 focus:ring-red-500/30;
   }
   .label {
-    @apply mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300;
+    @apply mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300;
+  }
+  .check {
+    @apply flex min-h-10 items-center gap-2 text-sm text-slate-700 dark:text-slate-300;
+  }
+  .check input {
+    @apply h-4 w-4 shrink-0 rounded border-slate-300 accent-indigo-600;
   }
   .field-error {
-    @apply mt-1 text-sm text-red-700 dark:text-red-400;
+    @apply mt-1.5 text-sm text-red-700 dark:text-red-400;
   }
-  .help {
-    @apply mt-1 text-xs text-slate-500 dark:text-slate-400;
+  .form-grid {
+    @apply grid gap-x-4 gap-y-5 sm:grid-cols-2;
   }
   .badge-active {
     @apply badge bg-green-100 text-green-800 dark:bg-green-900/60 dark:text-green-200;
@@ -96,16 +132,19 @@
     @apply badge bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200;
   }
   .badge-outline {
-    @apply badge border border-slate-300 text-slate-700 dark:border-slate-600 dark:text-slate-200;
+    @apply badge border-slate-300 bg-white text-slate-700 dark:border-slate-600 dark:bg-transparent dark:text-slate-200;
   }
   .badge-outline-error {
-    @apply badge border border-red-400 text-red-700 dark:border-red-500 dark:text-red-300;
+    @apply badge border-red-400 bg-white text-red-700 dark:border-red-500 dark:bg-transparent dark:text-red-300;
   }
   .badge-owner {
     @apply badge bg-indigo-100 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-100;
   }
   .badge-internal {
     @apply badge bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300;
+  }
+  .badge-row {
+    @apply flex flex-wrap items-center gap-1.5;
   }
   .table {
     @apply min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800;
@@ -120,20 +159,46 @@
     @apply border-t border-slate-100 dark:border-slate-800;
   }
   .nav-link {
-    @apply flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white;
+    @apply flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white;
   }
   .nav-link-active {
     @apply bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-200;
   }
+  .tabs {
+    @apply -mx-4 mb-6 flex gap-1 overflow-x-auto border-b border-slate-200 px-4 sm:mx-0 sm:px-0 dark:border-slate-800;
+    scrollbar-width: none;
+  }
   .tab {
-    @apply whitespace-nowrap border-b-2 border-transparent px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white;
+    @apply -mb-px inline-flex h-10 shrink-0 items-center whitespace-nowrap border-b-2 border-transparent px-3 text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white;
   }
   .tab-active {
     @apply border-indigo-600 text-indigo-700 dark:border-indigo-400 dark:text-indigo-300;
   }
+  .segmented {
+    @apply inline-flex h-8 items-center rounded-lg bg-slate-100 p-0.5 dark:bg-slate-800;
+  }
+  .segment {
+    @apply inline-flex h-7 items-center rounded-md px-3 text-xs font-medium text-slate-600 cursor-pointer dark:text-slate-300;
+  }
+  .segment-active {
+    @apply bg-white text-slate-900 shadow-sm dark:bg-slate-950 dark:text-white;
+  }
+  .back-link {
+    @apply mb-3 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white;
+  }
+  .stat-label {
+    @apply text-xs text-slate-500 dark:text-slate-400;
+  }
+  .stat-value {
+    @apply whitespace-nowrap text-sm font-medium tabular-nums;
+  }
+  .list-row {
+    @apply flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3;
+  }
   .prose-md {
     @apply text-sm leading-relaxed;
   }
+  .prose-md > :first-child { @apply mt-0; }
   .prose-md h1 { @apply mt-4 mb-2 text-xl font-semibold; }
   .prose-md h2 { @apply mt-4 mb-2 text-lg font-semibold; }
   .prose-md h3 { @apply mt-3 mb-1 text-base font-semibold; }
@@ -154,10 +219,13 @@
     @apply toast bg-red-700 text-white;
   }
   dialog.modal {
-    @apply m-auto w-full max-w-lg rounded-xl border border-slate-200 bg-white p-0 text-slate-900 shadow-xl dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100;
+    @apply m-auto w-[calc(100%-2rem)] max-w-lg rounded-xl border border-slate-200 bg-white p-0 text-slate-900 shadow-xl dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100;
   }
   dialog.modal::backdrop {
     @apply bg-slate-950/50;
+  }
+  .modal-actions {
+    @apply flex flex-wrap justify-end gap-3 pt-2;
   }
   .htmx-indicator {
     @apply hidden;

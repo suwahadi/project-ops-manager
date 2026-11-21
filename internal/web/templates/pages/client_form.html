@@ -1,24 +1,25 @@
 {{define "content"}}
 {{$d := .Data}}{{$e := $d.Errors}}
+{{template "back_link" (dict "Href" (or (and $d.IsEdit (print "/clients/" $d.ID)) "/clients") "Label" (or (and $d.IsEdit "Client") "Clients"))}}
 <form method="post" action="{{if $d.IsEdit}}/clients/{{$d.ID}}{{else}}/clients{{end}}" class="card max-w-2xl" novalidate>
-  <div class="card-body space-y-4">
+  <div class="card-body">
     {{template "csrf" .CSRF}}
-    <div>
-      <label for="name" class="label">Name</label>
-      <input id="name" name="name" required class="input{{if $e.name}} input-error{{end}}" value="{{$d.Input.Name}}" autofocus>
-      {{template "field_error" $e.name}}
-    </div>
-    <div class="grid gap-4 sm:grid-cols-2">
+    <div class="form-grid">
+      <div class="sm:col-span-2">
+        <label for="name" class="label">Name</label>
+        <input id="name" name="name" required class="input{{if $e.name}} input-error{{end}}" value="{{$d.Input.Name}}" autofocus>
+        {{template "field_error" $e.name}}
+      </div>
       <div><label for="contact_person" class="label">Contact person</label><input id="contact_person" name="contact_person" class="input" value="{{$d.Input.ContactPerson}}"></div>
       <div><label for="phone" class="label">Phone</label><input id="phone" name="phone" type="tel" class="input" value="{{$d.Input.Phone}}"></div>
+      <div class="sm:col-span-2">
+        <label for="email" class="label">Email</label>
+        <input id="email" name="email" type="email" class="input{{if $e.email}} input-error{{end}}" value="{{$d.Input.Email}}">
+        {{template "field_error" $e.email}}
+      </div>
+      <div class="sm:col-span-2"><label for="notes" class="label">Notes</label><textarea id="notes" name="notes" rows="4" class="input">{{$d.Input.Notes}}</textarea></div>
     </div>
-    <div>
-      <label for="email" class="label">Email</label>
-      <input id="email" name="email" type="email" class="input{{if $e.email}} input-error{{end}}" value="{{$d.Input.Email}}">
-      {{template "field_error" $e.email}}
-    </div>
-    <div><label for="notes" class="label">Notes</label><textarea id="notes" name="notes" rows="4" class="input">{{$d.Input.Notes}}</textarea></div>
-    <div class="flex justify-end gap-2">
+    <div class="form-actions">
       <a href="{{if $d.IsEdit}}/clients/{{$d.ID}}{{else}}/clients{{end}}" class="btn-secondary">Cancel</a>
       <button type="submit" class="btn-primary">{{if $d.IsEdit}}Save changes{{else}}Create client{{end}}</button>
     </div>

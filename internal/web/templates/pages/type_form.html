@@ -1,71 +1,78 @@
 {{define "content"}}
 {{template "settings_tabs" .Data}}
 {{$d := .Data.Body}}{{$e := $d.Errors}}{{$csrf := .CSRF}}
-<div class="mb-4"><a href="/settings/types" class="text-sm text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white">← Asset types</a></div>
-<div class="grid items-start gap-6 lg:grid-cols-3">
+{{template "back_link" (dict "Href" "/settings/types" "Label" "Asset types")}}
+<div class="grid items-start gap-4 sm:gap-6 lg:grid-cols-3">
   <section class="card">
-    <form method="post" action="{{if $d.IsEdit}}/settings/types/{{$d.Type.ID}}{{else}}/settings/types{{end}}" class="card-body space-y-4" novalidate>
+    <form method="post" action="{{if $d.IsEdit}}/settings/types/{{$d.Type.ID}}{{else}}/settings/types{{end}}" class="card-body" novalidate>
       {{template "csrf" $csrf}}
-      <h2 class="text-base font-semibold">{{if $d.IsEdit}}Edit type{{else}}New custom type{{end}}</h2>
-      <div><label for="t-name" class="label">Name</label><input id="t-name" name="name" required class="input{{if $e.name}} input-error{{end}}" value="{{$d.Name}}">{{template "field_error" $e.name}}</div>
-      <div>
-        <label for="t-icon" class="label">Icon</label>
-        <select id="t-icon" name="icon" class="input">{{range $d.Icons}}<option value="{{.}}"{{if eq . $d.Icon}} selected{{end}}>{{.}}</option>{{end}}</select>
+      <div class="card-header">
+        <h2 class="card-title">{{if $d.IsEdit}}Edit type{{else}}New custom type{{end}}</h2>
+        {{if $d.Type.Builtin}}<span class="badge-internal">Built-in</span>{{end}}
       </div>
-      <div>
-        <label for="t-offsets" class="label">Reminder offsets (days before expiry)</label>
-        <input id="t-offsets" name="offsets" required class="input{{if $e.offsets}} input-error{{end}}" value="{{$d.Offsets}}" placeholder="30, 14, 7, 1">
-        <p class="help">Positive whole numbers, comma separated, each listed once. The smallest is the last reminder.</p>
-        {{template "field_error" $e.offsets}}
+      <div class="space-y-5">
+        <div><label for="t-name" class="label">Name</label><input id="t-name" name="name" required class="input{{if $e.name}} input-error{{end}}" value="{{$d.Name}}">{{template "field_error" $e.name}}</div>
+        <div>
+          <label for="t-icon" class="label">Icon</label>
+          <select id="t-icon" name="icon" class="input">{{range $d.Icons}}<option value="{{.}}"{{if eq . $d.Icon}} selected{{end}}>{{.}}</option>{{end}}</select>
+        </div>
+        <div>
+          <label for="t-offsets" class="label">Reminder days before expiry</label>
+          <input id="t-offsets" name="offsets" required class="input{{if $e.offsets}} input-error{{end}}" value="{{$d.Offsets}}">
+          {{template "field_error" $e.offsets}}
+        </div>
       </div>
-      <div class="flex flex-wrap justify-end gap-2">
-        {{if and $d.IsEdit (not $d.Type.Builtin)}}{{if eq $d.Type.AssetCount 0}}{{template "confirm_button" (dict "ID" "type-del" "Class" "btn-danger" "Label" "Delete type" "Action" (print "/settings/types/" $d.Type.ID "/delete") "CSRF" $csrf "Title" "Delete this type?" "Body" "Its custom field definitions are deleted too." "Confirm" "Delete" "Danger" true)}}{{end}}{{end}}
+      <div class="form-actions">
+        {{if and $d.IsEdit (not $d.Type.Builtin) (eq $d.Type.AssetCount 0)}}{{template "confirm_button" (dict "ID" "type-del" "Class" "btn-ghost text-red-700 dark:text-red-400" "Label" "Delete type" "Action" (print "/settings/types/" $d.Type.ID "/delete") "CSRF" $csrf "Title" "Delete this type?" "Body" "Its custom field definitions are deleted too." "Confirm" "Delete" "Danger" true)}}{{end}}
         <button type="submit" class="btn-primary">{{if $d.IsEdit}}Save type{{else}}Create type{{end}}</button>
       </div>
-      {{if and $d.IsEdit (not $d.Type.Builtin) (gt $d.Type.AssetCount 0)}}<p class="help">Types with assets cannot be deleted.</p>{{end}}
     </form>
   </section>
 
   {{if $d.IsEdit}}
-  <section class="space-y-4 lg:col-span-2">
+  <section class="space-y-4 sm:space-y-6 lg:col-span-2">
     <div class="card"><div class="card-body">
-      <h2 class="mb-3 text-base font-semibold">Custom fields</h2>
-      {{if not $d.Type.Fields}}<p class="text-sm text-slate-500 dark:text-slate-400">No custom fields yet. Add one below.</p>{{end}}
-      <ul class="divide-y divide-slate-100 dark:divide-slate-800">
+      <h2 class="card-title mb-4">Custom fields</h2>
+      {{if not $d.Type.Fields}}<p class="section-desc">No custom fields yet.</p>{{end}}
+      <ul class="space-y-4">
         {{range $d.Type.Fields}}
-        <li class="py-3">
-          <form method="post" action="/settings/types/{{$d.Type.ID}}/fields/{{.ID}}" class="grid gap-3 sm:grid-cols-6 sm:items-end">
+        <li class="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+          <form method="post" action="/settings/types/{{$d.Type.ID}}/fields/{{.ID}}">
             {{template "csrf" $csrf}}
-            <div class="sm:col-span-2"><label class="label" for="f-label-{{.ID}}">Label</label><input id="f-label-{{.ID}}" name="label" class="input" value="{{.Label}}" required><p class="help font-mono">{{.Key}}</p></div>
-            <div class="sm:col-span-2"><label class="label" for="f-type-{{.ID}}">Type</label>
-              {{$cur := print .Type}}<select id="f-type-{{.ID}}" name="field_type" class="input">{{range $d.FieldTypes}}<option value="{{.}}"{{if eq (print .) $cur}} selected{{end}}>{{.Label}}</option>{{end}}</select></div>
-            <div><label class="label" for="f-sort-{{.ID}}">Order</label><input id="f-sort-{{.ID}}" name="sort_order" type="number" class="input" value="{{.SortOrder}}"></div>
-            <label class="flex items-center gap-2 pb-2 text-sm"><input type="checkbox" name="is_required" value="1" class="h-4 w-4 rounded border-slate-300"{{if .Required}} checked{{end}}>Required</label>
-            <div class="sm:col-span-4"><label class="label" for="f-opts-{{.ID}}">Options <span class="text-slate-400">(select fields, one per line)</span></label><textarea id="f-opts-{{.ID}}" name="options" rows="2" class="input">{{join .Options "\n"}}</textarea></div>
-            <div class="flex gap-2 sm:col-span-2 sm:justify-end">
-              <button type="button" class="btn-ghost btn-sm" hx-get="/settings/types/{{$d.Type.ID}}/fields/{{.ID}}/remove" hx-target="#modal-root" hx-swap="innerHTML">Remove</button>
-              <button type="submit" class="btn-secondary btn-sm">Save field</button>
+            <div class="mb-3 flex items-center justify-between gap-2">
+              <span class="badge-outline font-mono">{{.Key}}</span>
+              <div class="flex gap-2">
+                <button type="button" class="btn-ghost btn-sm text-red-700 dark:text-red-400" hx-get="/settings/types/{{$d.Type.ID}}/fields/{{.ID}}/remove" hx-target="#modal-root" hx-swap="innerHTML">Remove</button>
+                <button type="submit" class="btn-secondary btn-sm">Save field</button>
+              </div>
             </div>
+            {{template "field_inputs" (dict "P" (print "f-" .ID "-") "Label" .Label "Type" (print .Type) "Sort" .SortOrder "Required" .Required "Options" (join .Options "\n") "Types" $d.FieldTypes "Errors" nil)}}
           </form>
         </li>
         {{end}}
       </ul>
     </div></div>
 
-    {{$ff := $d.FieldForm}}{{$fe := $ff.Errors}}
-    <div class="card"><form method="post" action="/settings/types/{{$d.Type.ID}}/fields" class="card-body grid gap-3 sm:grid-cols-2" novalidate>
+    {{$ff := $d.FieldForm}}
+    <div class="card"><form method="post" action="/settings/types/{{$d.Type.ID}}/fields" class="card-body" novalidate>
       {{template "csrf" $csrf}}
-      <h3 class="text-sm font-semibold sm:col-span-2">Add field</h3>
-      <div><label class="label" for="nf-label">Label</label><input id="nf-label" name="label" class="input{{if $fe.label}} input-error{{end}}" value="{{$ff.Label}}" required>{{template "field_error" $fe.label}}</div>
-      <div><label class="label" for="nf-key">Key <span class="text-slate-400">(optional)</span></label><input id="nf-key" name="key" class="input font-mono{{if $fe.key}} input-error{{end}}" value="{{$ff.Key}}" placeholder="generated from label">{{template "field_error" $fe.key}}</div>
-      <div><label class="label" for="nf-type">Type</label><select id="nf-type" name="field_type" class="input">{{range $d.FieldTypes}}<option value="{{.}}"{{if eq (print .) $ff.Type}} selected{{end}}>{{.Label}}</option>{{end}}</select>{{template "field_error" $fe.field_type}}</div>
-      <div><label class="label" for="nf-sort">Order <span class="text-slate-400">(optional)</span></label><input id="nf-sort" name="sort_order" type="number" class="input{{if $fe.sort_order}} input-error{{end}}" value="{{$ff.Sort}}">{{template "field_error" $fe.sort_order}}</div>
-      <div class="sm:col-span-2"><label class="label" for="nf-opts">Options <span class="text-slate-400">(select fields, one per line)</span></label><textarea id="nf-opts" name="options" rows="3" class="input{{if $fe.options}} input-error{{end}}">{{$ff.Options}}</textarea>{{template "field_error" $fe.options}}</div>
-      <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="is_required" value="1" class="h-4 w-4 rounded border-slate-300"{{if $ff.Required}} checked{{end}}>Required</label>
-      <div class="flex justify-end sm:col-span-1"><button type="submit" class="btn-primary">Add field</button></div>
+      <h2 class="card-title mb-4">Add field</h2>
+      {{template "field_inputs" (dict "P" "nf-" "Label" $ff.Label "Type" $ff.Type "Sort" $ff.Sort "Required" $ff.Required "Options" $ff.Options "Types" $d.FieldTypes "Errors" $ff.Errors)}}
+      <div class="form-actions"><button type="submit" class="btn-primary">Add field</button></div>
     </form></div>
   </section>
   {{end}}
+</div>
+{{end}}
+
+{{define "field_inputs"}}{{$e := .Errors}}
+<div class="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-6">
+  <div class="col-span-2 sm:col-span-3"><label class="label" for="{{.P}}label">Label</label><input id="{{.P}}label" name="label" required class="input{{if and $e $e.label}} input-error{{end}}" value="{{.Label}}">{{if $e}}{{template "field_error" $e.label}}{{template "field_error" $e.key}}{{end}}</div>
+  <div class="col-span-2 sm:col-span-3"><label class="label" for="{{.P}}type">Type</label>
+    {{$cur := .Type}}<select id="{{.P}}type" name="field_type" class="input">{{range .Types}}<option value="{{.}}"{{if eq (print .) $cur}} selected{{end}}>{{.Label}}</option>{{end}}</select></div>
+  <div class="sm:col-span-3"><label class="label" for="{{.P}}sort">Order</label><input id="{{.P}}sort" name="sort_order" type="number" class="input{{if and $e $e.sort_order}} input-error{{end}}" value="{{.Sort}}">{{if $e}}{{template "field_error" $e.sort_order}}{{end}}</div>
+  <div class="sm:col-span-3"><span class="label" aria-hidden="true">&nbsp;</span><label class="check h-10"><input type="checkbox" name="is_required" value="1"{{if .Required}} checked{{end}}>Required</label></div>
+  <div class="col-span-2 sm:col-span-6" data-show-if="{{.P}}type:select"{{if ne .Type "select"}} hidden{{end}}><label class="label" for="{{.P}}opts">Options</label><textarea id="{{.P}}opts" name="options" rows="3" class="input{{if and $e $e.options}} input-error{{end}}">{{.Options}}</textarea>{{if $e}}{{template "field_error" $e.options}}{{end}}</div>
 </div>
 {{end}}
 
@@ -76,7 +83,7 @@
     {{template "csrf" .CSRF}}
     <h2 id="remove-field-title" class="text-lg font-semibold">Remove “{{$d.Field.Label}}”?</h2>
     <p class="text-sm text-slate-600 dark:text-slate-400">{{if eq $d.Affected 0}}No assets have a value for this field.{{else}}{{$d.Affected}} {{plural (int $d.Affected) "asset has" "assets have"}} a value for this field. Those values will be deleted.{{end}}</p>
-    <div class="flex justify-end gap-2">
+    <div class="modal-actions">
       <button type="button" class="btn-secondary" data-dialog-close>Cancel</button>
       <button type="submit" class="btn-danger">Remove field</button>
     </div>
