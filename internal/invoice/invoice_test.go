@@ -157,3 +157,37 @@ func TestFilter(t *testing.T) {
 		t.Fatalf("summary: %+v", sum)
 	}
 }
+
+func TestRenewalItems(t *testing.T) {
+	exp := time.Date(2026, 11, 28, 0, 0, 0, 0, time.UTC)
+	item := RenewalItem(RenewalSource{Name: "rl-indo.com", TypeName: "Domain", Expiration: exp, Months: 12, Cost: amt("150000"), Selling: money.Some(amt("277500")), Currency: money.IDR})
+	if item.Title != "Renew rl-indo.com" || item.Description != "Domain rl-indo.com – 1 year (28 Nov 2026 – 27 Nov 2027)" || item.Rate != "277500" || item.Quantity != "1" {
+		t.Fatalf("item: %+v", item)
+	}
+	if RenewalItem(RenewalSource{Name: "x", Expiration: exp, Months: 3, Cost: amt("12.50")}).Rate != "12.5" {
+		t.Fatal("cost fallback")
+	}
+	for months, want := range map[int]string{1: "1 month", 6: "6 months", 12: "1 year", 24: "2 years"} {
+		if got := RenewalPeriod(months); got != want {
+			t.Errorf("RenewalPeriod(%d) = %s", months, got)
+		}
+	}
+	sources := []RenewalSource{
+		{Name: "a.com", Expiration: exp, Months: 12, Cost: amt("1"), Currency: money.IDR},
+		{Name: "vps", Expiration: exp, Months: 1, Cost: amt("5"), Currency: money.USD},
+		{Name: "old.com", Expiration: exp, Months: 12, Cost: amt("1"), Currency: money.IDR, Cancelled: true},
+		{Name: "b.com", Expiration: exp, Months: 12, Cost: amt("2"), Currency: money.IDR},
+	}
+	cur, items := ClientItems(sources, money.USD)
+	if cur != money.IDR || len(items) != 2 || items[0].Title != "Renew a.com" || items[1].Title != "Renew b.com" {
+		t.Fatalf("client items: %s %+v", cur, items)
+	}
+	cur, items = ClientItems(sources[:2], money.USD)
+	if cur != money.USD || len(items) != 1 || items[0].Title != "Renew vps" {
+		t.Fatalf("tie keeps preferred: %s %+v", cur, items)
+	}
+	cur, items = ClientItems(nil, money.IDR)
+	if cur != money.IDR || len(items) != 0 {
+		t.Fatal("no assets")
+	}
+}

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"html/template"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -98,33 +97,27 @@ func (a *App) renderInvoiceForm(w http.ResponseWriter, r *http.Request, status i
 	a.render(w, r, status, "invoice_form", title, "invoices", d)
 }
 
-func renewalPeriod(months int) string {
-	switch {
-	case months == 12:
-		return "1 year"
-	case months%12 == 0:
-		return strconv.Itoa(months/12) + " years"
-	case months == 1:
-		return "1 month"
+func renewalSource(d asset.Detail) invoice.RenewalSource {
+	return invoice.RenewalSource{
+		Name: d.Name, TypeName: d.TypeName, Expiration: d.ExpirationDate, Months: int(d.RenewalPeriodMonths),
+		Cost: d.CostPrice, Selling: d.SellingPrice, Currency: money.Currency(d.Currency),
 	}
-	return strconv.Itoa(months) + " months"
 }
 
-func assetInvoiceItem(d asset.Detail) invoice.ItemForm {
-	months := int(d.RenewalPeriodMonths)
-	start := d.ExpirationDate
-	end := start.AddDate(0, months, -1)
-	rate := d.CostPrice
-	if d.SellingPrice.Valid {
-		rate = d.SellingPrice.Amount
+func (a *App) clientInvoiceItems(ctx context.Context, clientID string, preferred money.Currency) (money.Currency, []invoice.ItemForm, error) {
+	rows, err := a.Clients.Assets(ctx, clientID)
+	if err != nil {
+		return preferred, nil, err
 	}
-	return invoice.ItemForm{
-		Title:       "Renew " + d.Name,
-		Description: d.TypeName + " " + d.Name + " – " + renewalPeriod(months) + " (" + start.Format("02 Jan 2006") + " – " + end.Format("02 Jan 2006") + ")",
-		Quantity:    "1",
-		Rate:        invoice.FormatDecimal(rate),
-		Tax:         "0",
+	sources := make([]invoice.RenewalSource, len(rows))
+	for i, r := range rows {
+		sources[i] = invoice.RenewalSource{
+			Name: r.Name, TypeName: r.TypeName, Expiration: r.ExpirationDate, Months: int(r.RenewalPeriodMonths),
+			Cost: r.CostPrice, Selling: r.SellingPrice, Currency: money.Currency(r.Currency), Cancelled: r.CancelledAt != nil,
+		}
 	}
+	cur, items := invoice.ClientItems(sources, preferred)
+	return cur, items, nil
 }
 
 func (a *App) InvoiceNew(w http.ResponseWriter, r *http.Request) {
@@ -149,7 +142,7 @@ func (a *App) InvoiceNew(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			f.AssetID = d.ID
 			f.Currency = d.Currency
-			f.Items = []invoice.ItemForm{assetInvoiceItem(d)}
+			f.Items = []invoice.ItemForm{invoice.RenewalItem(renewalSource(d))}
 			if d.ClientID != nil {
 				f.ClientID = *d.ClientID
 				f.BillTo = deref(d.ClientName)
@@ -160,6 +153,13 @@ func (a *App) InvoiceNew(w http.ResponseWriter, r *http.Request) {
 		if c, err := a.Clients.Get(ctx, id); err == nil {
 			f.ClientID = c.ID
 			f.BillTo = c.Name
+			cur, items, err := a.clientInvoiceItems(ctx, c.ID, all.General.DefaultCurrency)
+			if err != nil {
+				a.serverError(w, r, err)
+				return
+			}
+			f.Currency = string(cur)
+			f.Items = items
 		}
 	}
 	a.renderInvoiceForm(w, r, http.StatusOK, invoiceFormData{Form: f})

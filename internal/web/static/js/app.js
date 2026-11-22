@@ -237,17 +237,111 @@
     });
   }
 
+  var EYE = ["M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0", "M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0"];
+  var EYE_OFF = ["M10.73 5.08A10.43 10.43 0 0 1 12 5c4.36 0 8.08 2.65 9.94 6.65a1 1 0 0 1 0 .7 10.75 10.75 0 0 1-1.44 2.49", "M14.08 14.16a3 3 0 0 1-4.24-4.24", "M17.48 17.5a10.75 10.75 0 0 1-15.42-5.15 1 1 0 0 1 0-.7 10.75 10.75 0 0 1 4.45-5.14", "M2 2l20 20"];
+
+  function eyeIcon(paths) {
+    var ns = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "1.75");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("class", "h-5 w-5");
+    paths.forEach(function (d) {
+      var p = document.createElementNS(ns, "path");
+      p.setAttribute("d", d);
+      svg.appendChild(p);
+    });
+    return svg;
+  }
+
+  function initPasswordToggles(root) {
+    within(root, "input[type=password]").forEach(function (input) {
+      if (input.hasAttribute("data-password-ready")) {
+        return;
+      }
+      input.setAttribute("data-password-ready", "");
+      var wrap = document.createElement("div");
+      wrap.className = "relative";
+      input.parentNode.insertBefore(wrap, input);
+      wrap.appendChild(input);
+      input.classList.add("pr-11");
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "password-toggle";
+      btn.setAttribute("aria-label", "Show password");
+      btn.setAttribute("aria-pressed", "false");
+      btn.appendChild(eyeIcon(EYE));
+      btn.addEventListener("click", function () {
+        var show = input.type === "password";
+        input.type = show ? "text" : "password";
+        btn.setAttribute("aria-label", show ? "Hide password" : "Show password");
+        btn.setAttribute("aria-pressed", show ? "true" : "false");
+        btn.replaceChild(eyeIcon(show ? EYE_OFF : EYE), btn.firstChild);
+        input.focus();
+      });
+      wrap.appendChild(btn);
+      var form = input.form;
+      if (form && !form.hasAttribute("data-password-reset")) {
+        form.setAttribute("data-password-reset", "");
+        form.addEventListener("submit", function () {
+          form.querySelectorAll("input[data-password-ready]").forEach(function (f) {
+            f.type = "password";
+          });
+        });
+      }
+    });
+  }
+
+  function isVisible(el) {
+    return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+  }
+
+  function focusFirstError(root) {
+    var target = null;
+    within(root, ".input-error, .field-error").some(function (el) {
+      if (isVisible(el)) {
+        target = el;
+        return true;
+      }
+      return false;
+    });
+    if (!target) {
+      return;
+    }
+    if (target.classList.contains("field-error")) {
+      var field = target.parentElement && target.parentElement.querySelector("input:not([type=hidden]), textarea, button.combo-trigger");
+      target = field && isVisible(field) ? field : target;
+    }
+    target.scrollIntoView({ block: "center" });
+    if (typeof target.focus === "function") {
+      target.focus({ preventScroll: true });
+    }
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll("[data-toast]").forEach(scheduleDismiss);
     initRevealTimers(document);
     initDialogs(document);
     applyShowIf(document);
+    initPasswordToggles(document);
+    setTimeout(function () {
+      focusFirstError(document.querySelector("main") || document);
+    }, 0);
   });
 
   document.addEventListener("htmx:load", function (e) {
     initRevealTimers(e.target);
     initDialogs(e.target);
     applyShowIf(document);
+    initPasswordToggles(e.target);
+    if (e.target !== document.body) {
+      focusFirstError(e.target);
+    }
   });
 
   document.addEventListener("showToast", function (e) {

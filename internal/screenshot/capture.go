@@ -43,7 +43,7 @@ func (c *Capturer) endpoint(ctx context.Context) (string, error) {
 	if net.ParseIP(host) == nil && host != "localhost" {
 		addrs, err := net.DefaultResolver.LookupHost(ctx, host)
 		if err != nil || len(addrs) == 0 {
-			return "", fmt.Errorf("the screenshot service %s is not reachable", host)
+			return "", fmt.Errorf("the Chromium service %s is not reachable", host)
 		}
 		host = addrs[0]
 	}
@@ -128,7 +128,7 @@ func friendlyError(ctx context.Context, err error) error {
 	case strings.Contains(msg, "ERR_CERT"):
 		return errors.New("the website has an invalid TLS certificate")
 	case strings.Contains(msg, "connection refused"), strings.Contains(msg, "websocket"), strings.Contains(msg, "json/version"):
-		return errors.New("the screenshot service is not reachable")
+		return errors.New("the Chromium service is not reachable")
 	}
 	if len(msg) > 300 {
 		msg = msg[:300]
