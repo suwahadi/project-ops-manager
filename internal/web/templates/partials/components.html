@@ -99,3 +99,5 @@
   <a href="{{.Href}}" class="btn-secondary">{{icon "close" "h-4 w-4"}}Reset filters</a>
 </div></div>
 {{end}}
+
+{{define "payment_badge"}}{{if eq . "paid"}}<span class="badge-active">Paid</span>{{else if eq . "partial"}}<span class="badge-expiring">Partially paid</span>{{else if eq . "unpaid"}}<span class="badge-outline">Unpaid</span>{{end}}{{end}}

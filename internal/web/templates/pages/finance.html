@@ -21,20 +21,20 @@
 </div></div>
 
 <div class="grid gap-4 sm:gap-6 lg:grid-cols-2">
-  {{template "fin_lines" (dict "Title" (print "Actual · " $rep.Period.Label) "Sub" "Renewals paid in the period" "Kind" "Actual" "Lines" $rep.Actual "Empty" "No renewals were paid in this period.")}}
-  {{template "fin_lines" (dict "Title" (print "Projected · " $rep.Period.Label) "Sub" "Assets due, at current prices" "Kind" "Projected" "Lines" $rep.Projected "Empty" "No assets expire in this period.")}}
+  {{template "fin_lines" (dict "Title" (print "Actual · " $rep.Period.Label) "Sub" "Renewals and project payments received in the period" "Kind" "Actual" "Lines" $rep.Actual "Empty" "Nothing was paid in this period.")}}
+  {{template "fin_lines" (dict "Title" (print "Projected · " $rep.Period.Label) "Sub" "Assets due at current prices and open project balances" "Kind" "Projected" "Lines" $rep.Projected "Empty" "Nothing is due in this period.")}}
 </div>
 
 <section class="card mt-4 sm:mt-6"><div class="card-body">
   <h2 class="card-title mb-4">Next 12 months</h2>
   <div class="hidden overflow-x-auto md:block"><table class="table">
-    <thead><tr><th>Month</th><th>Currency</th><th class="text-right">Cost</th><th class="text-right">Revenue</th><th class="text-right">Margin</th><th class="text-right">Renewals</th></tr></thead>
+    <thead><tr><th>Month</th><th>Currency</th><th class="text-right">Cost</th><th class="text-right">Revenue</th><th class="text-right">Margin</th><th class="text-right">Items</th></tr></thead>
     <tbody>
       {{range $d.Projection}}{{$m := .Month}}
         {{range $i, $l := .Lines}}
         <tr><td class="whitespace-nowrap">{{if eq $i 0}}<a href="/finance?view=month&month={{$m.Format "2006-01"}}" class="hover:underline">{{$m.Format "Jan 2006"}}</a>{{end}}</td><td>{{$l.Currency}}</td><td class="whitespace-nowrap text-right tabular-nums">{{money $l.Cost $l.Currency}}</td><td class="whitespace-nowrap text-right tabular-nums">{{money $l.Revenue $l.Currency}}</td><td class="whitespace-nowrap text-right tabular-nums">{{money $l.Margin $l.Currency}}</td><td class="text-right tabular-nums">{{$l.Count}}</td></tr>
         {{else}}
-        <tr><td class="whitespace-nowrap">{{$m.Format "Jan 2006"}}</td><td colspan="5" class="text-slate-400">No renewals</td></tr>
+        <tr><td class="whitespace-nowrap">{{$m.Format "Jan 2006"}}</td><td colspan="5" class="text-slate-400">Nothing due</td></tr>
         {{end}}
       {{end}}
     </tbody>
@@ -45,7 +45,7 @@
       <a href="/finance?view=month&month={{$m.Format "2006-01"}}" class="flex items-start justify-between gap-3">
         <span class="text-sm font-medium">{{$m.Format "Jan 2006"}}</span>
         <span class="flex flex-col items-end gap-0.5 text-sm">
-          {{range .Lines}}<span class="tabular-nums">{{money .Cost .Currency}} <span class="text-slate-500 dark:text-slate-400">· {{.Count}}×</span></span>{{else}}<span class="text-slate-400">No renewals</span>{{end}}
+          {{range .Lines}}<span class="tabular-nums">{{money .Cost .Currency}} <span class="text-slate-500 dark:text-slate-400">· {{.Count}}×</span></span>{{else}}<span class="text-slate-400">Nothing due</span>{{end}}
         </span>
       </a>
     </li>
@@ -55,7 +55,8 @@
 
 <div class="mt-4 grid gap-4 sm:mt-6 sm:gap-6">
   {{template "fin_breakdown" (dict "Title" "By client" "Rows" $rep.ByClient)}}
-  {{template "fin_breakdown" (dict "Title" "By asset type" "Rows" $rep.ByType)}}
+  {{template "fin_breakdown" (dict "Title" "By type" "Rows" $rep.ByType)}}
+  {{template "fin_breakdown" (dict "Title" "By source" "Rows" $rep.BySource)}}
 </div>
 {{end}}
 

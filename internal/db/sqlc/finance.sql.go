@@ -12,6 +12,104 @@ import (
 	"github.com/suwahadi/project-ops-manager/internal/money"
 )
 
+const listBillableProjects = `-- name: ListBillableProjects :many
+SELECT p.id, p.billing_date, p.project_value, p.project_cost, p.currency, p.client_id, c.name AS client_name,
+  (SELECT COALESCE(sum(pp.amount), 0) FROM project_payments pp WHERE pp.project_id = p.id)::numeric(15,2) AS received
+FROM projects p
+LEFT JOIN clients c ON c.id = p.client_id
+WHERE p.project_value IS NOT NULL AND p.billing_date IS NOT NULL
+`
+
+type ListBillableProjectsRow struct {
+	ID           string
+	BillingDate  *time.Time
+	ProjectValue money.NullAmount
+	ProjectCost  money.NullAmount
+	Currency     string
+	ClientID     *string
+	ClientName   *string
+	Received     money.Amount
+}
+
+func (q *Queries) ListBillableProjects(ctx context.Context) ([]ListBillableProjectsRow, error) {
+	rows, err := q.db.Query(ctx, listBillableProjects)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListBillableProjectsRow{}
+	for rows.Next() {
+		var i ListBillableProjectsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.BillingDate,
+			&i.ProjectValue,
+			&i.ProjectCost,
+			&i.Currency,
+			&i.ClientID,
+			&i.ClientName,
+			&i.Received,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listProjectPaymentsForFinance = `-- name: ListProjectPaymentsForFinance :many
+SELECT pp.project_id, pp.received_on, pp.amount, p.project_value, p.project_cost, p.currency,
+  p.client_id, c.name AS client_name
+FROM project_payments pp
+JOIN projects p ON p.id = pp.project_id
+LEFT JOIN clients c ON c.id = p.client_id
+WHERE p.project_value IS NOT NULL AND pp.received_on < $1::date
+ORDER BY pp.project_id, pp.received_on, pp.created_at
+`
+
+type ListProjectPaymentsForFinanceRow struct {
+	ProjectID    string
+	ReceivedOn   time.Time
+	Amount       money.Amount
+	ProjectValue money.NullAmount
+	ProjectCost  money.NullAmount
+	Currency     string
+	ClientID     *string
+	ClientName   *string
+}
+
+func (q *Queries) ListProjectPaymentsForFinance(ctx context.Context, endDate time.Time) ([]ListProjectPaymentsForFinanceRow, error) {
+	rows, err := q.db.Query(ctx, listProjectPaymentsForFinance, endDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListProjectPaymentsForFinanceRow{}
+	for rows.Next() {
+		var i ListProjectPaymentsForFinanceRow
+		if err := rows.Scan(
+			&i.ProjectID,
+			&i.ReceivedOn,
+			&i.Amount,
+			&i.ProjectValue,
+			&i.ProjectCost,
+			&i.Currency,
+			&i.ClientID,
+			&i.ClientName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listProjectableAssets = `-- name: ListProjectableAssets :many
 SELECT a.id, a.expiration_date, a.renewal_period_months, a.cost_price, a.selling_price, a.currency,
   a.client_id, c.name AS client_name, a.asset_type_id, t.name AS type_name

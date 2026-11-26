@@ -12,9 +12,10 @@ import (
 )
 
 var (
-	ErrNotFound  = errors.New("client not found")
-	ErrInUse     = errors.New("client has assets or projects")
-	ErrNotLinked = errors.New("item does not belong to this client")
+	ErrNotFound    = errors.New("client not found")
+	ErrInUse       = errors.New("client has assets or projects")
+	ErrNotLinked   = errors.New("item does not belong to this client")
+	ErrHasPayments = errors.New("project has recorded payments")
 )
 
 type Input struct {
@@ -127,6 +128,13 @@ func (s *Service) UnlinkProject(ctx context.Context, id, projectID string) error
 		return fmt.Errorf("unlink project: %w", err)
 	}
 	if n == 0 {
+		paid, err := s.q.ProjectHasPayments(ctx, projectID)
+		if err != nil {
+			return fmt.Errorf("check payments: %w", err)
+		}
+		if paid {
+			return ErrHasPayments
+		}
 		return ErrNotLinked
 	}
 	return nil

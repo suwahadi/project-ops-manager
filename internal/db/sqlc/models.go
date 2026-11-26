@@ -121,6 +121,7 @@ type InvoiceItem struct {
 	Quantity    money.Amount
 	Rate        money.Amount
 	TaxPercent  money.Amount
+	ProjectID   *string
 }
 
 type JobRun struct {
@@ -141,18 +142,32 @@ type LoginAttempt struct {
 }
 
 type Project struct {
-	ID        string
-	ClientID  *string
-	Name      string
-	Url       *string
-	Brief     string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID           string
+	ClientID     *string
+	Name         string
+	Url          *string
+	Brief        string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	Currency     string
+	ProjectValue money.NullAmount
+	ProjectCost  money.NullAmount
+	BillingDate  *time.Time
 }
 
 type ProjectAsset struct {
 	ProjectID string
 	AssetID   string
+}
+
+type ProjectPayment struct {
+	ID         string
+	ProjectID  string
+	ReceivedOn time.Time
+	Amount     money.Amount
+	Note       string
+	InvoiceID  *string
+	CreatedAt  time.Time
 }
 
 type ProjectScreenshot struct {

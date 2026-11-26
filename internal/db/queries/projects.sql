@@ -1,7 +1,9 @@
 -- name: ListProjects :many
 SELECT p.id, p.name, p.url, p.client_id, c.name AS client_name, p.updated_at,
   s.status AS screenshot_status, s.stored_path AS screenshot_path, s.captured_at AS screenshot_captured_at,
-  (SELECT count(*) FROM project_assets pa WHERE pa.project_id = p.id)::bigint AS asset_count
+  (SELECT count(*) FROM project_assets pa WHERE pa.project_id = p.id)::bigint AS asset_count,
+  p.currency, p.project_value, p.project_cost, p.billing_date,
+  (SELECT COALESCE(sum(pp.amount), 0) FROM project_payments pp WHERE pp.project_id = p.id)::numeric(15,2) AS received
 FROM projects p
 LEFT JOIN clients c ON c.id = p.client_id
 LEFT JOIN project_screenshots s ON s.project_id = p.id
@@ -11,10 +13,44 @@ ORDER BY lower(p.name);
 SELECT p.*, c.name AS client_name FROM projects p LEFT JOIN clients c ON c.id = p.client_id WHERE p.id = $1;
 
 -- name: CreateProject :one
-INSERT INTO projects (client_id, name, url, brief) VALUES ($1, $2, $3, $4) RETURNING id;
+INSERT INTO projects (client_id, name, url, brief, currency, project_value, project_cost, billing_date)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id;
 
 -- name: UpdateProject :exec
-UPDATE projects SET client_id = $2, name = $3, url = $4, brief = $5, updated_at = now() WHERE id = $1;
+UPDATE projects SET client_id = $2, name = $3, url = $4, brief = $5, currency = $6, project_value = $7,
+  project_cost = $8, billing_date = $9, updated_at = now()
+WHERE id = $1;
+
+-- name: LockProject :one
+SELECT id, client_id, currency, project_value FROM projects WHERE id = $1 FOR UPDATE;
+
+-- name: ProjectReceived :one
+SELECT COALESCE(sum(amount), 0)::numeric(15,2) AS received, count(*)::bigint AS payments
+FROM project_payments WHERE project_id = $1;
+
+-- name: ListProjectPayments :many
+SELECT pp.*, i.number AS invoice_number
+FROM project_payments pp
+LEFT JOIN invoices i ON i.id = pp.invoice_id
+WHERE pp.project_id = $1
+ORDER BY pp.received_on, pp.created_at;
+
+-- name: CreateProjectPayment :one
+INSERT INTO project_payments (project_id, received_on, amount, note, invoice_id)
+VALUES ($1, $2, $3, $4, $5) RETURNING id;
+
+-- name: DeleteProjectPayment :execrows
+DELETE FROM project_payments WHERE id = $1 AND project_id = $2;
+
+-- name: ListInvoiceProjectPayments :many
+SELECT project_id FROM project_payments WHERE invoice_id = $1;
+
+-- name: ListProjectsByClientWithMoney :many
+SELECT p.id, p.name, p.currency, p.project_value, p.project_cost, p.billing_date,
+  (SELECT COALESCE(sum(pp.amount), 0) FROM project_payments pp WHERE pp.project_id = p.id)::numeric(15,2) AS received
+FROM projects p
+WHERE p.client_id = $1
+ORDER BY lower(p.name);
 
 -- name: DeleteProject :exec
 DELETE FROM projects WHERE id = $1;

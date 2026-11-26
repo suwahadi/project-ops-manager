@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/suwahadi/project-ops-manager/internal/db/sqlc"
+	"github.com/suwahadi/project-ops-manager/internal/money"
 )
 
 func TestApply(t *testing.T) {
@@ -15,7 +16,7 @@ func TestApply(t *testing.T) {
 	done, failed := "done", "failed"
 	t0 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	rows := []sqlc.ListProjectsRow{
-		{Name: "Blog", ClientID: &acme, ClientName: &acmeName, ScreenshotStatus: &done, UpdatedAt: t0, AssetCount: 1},
+		{Name: "Blog", ClientID: &acme, ClientName: &acmeName, ScreenshotStatus: &done, UpdatedAt: t0, AssetCount: 1, Currency: "IDR", ProjectValue: money.Some(money.FromCents(100000)), Received: money.FromCents(40000)},
 		{Name: "admin", Url: &site, ScreenshotStatus: &failed, UpdatedAt: t0.Add(time.Hour), AssetCount: 4},
 		{Name: "Docs", UpdatedAt: t0.Add(2 * time.Hour)},
 	}
@@ -35,6 +36,10 @@ func TestApply(t *testing.T) {
 		{"sort=updated_desc", []string{"Docs", "admin", "Blog"}},
 		{"sort=assets_desc", []string{"admin", "Blog", "Docs"}},
 		{"sort=name_desc", []string{"Docs", "Blog", "admin"}},
+		{"payment=none", []string{"admin", "Docs"}},
+		{"payment=partial", []string{"Blog"}},
+		{"payment=paid", nil},
+		{"sort=value_desc", []string{"Blog", "admin", "Docs"}},
 	}
 	for _, c := range cases {
 		v, _ := url.ParseQuery(c.query)

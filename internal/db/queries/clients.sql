@@ -55,5 +55,9 @@ UPDATE assets SET client_id = NULL, selling_price = NULL, updated_at = now()
 WHERE id = @asset_id::uuid AND client_id = @client_id::uuid;
 
 -- name: UnlinkProjectFromClient :execrows
-UPDATE projects SET client_id = NULL, updated_at = now()
-WHERE id = @project_id::uuid AND client_id = @client_id::uuid;
+UPDATE projects SET client_id = NULL, project_value = NULL, project_cost = NULL, billing_date = NULL, updated_at = now()
+WHERE id = @project_id::uuid AND client_id = @client_id::uuid
+  AND NOT EXISTS (SELECT 1 FROM project_payments pp WHERE pp.project_id = @project_id::uuid);
+
+-- name: ProjectHasPayments :one
+SELECT EXISTS (SELECT 1 FROM project_payments WHERE project_id = $1);

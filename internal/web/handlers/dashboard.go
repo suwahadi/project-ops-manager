@@ -111,13 +111,13 @@ func (a *App) Dashboard(w http.ResponseWriter, r *http.Request) {
 	})
 	g.Go(func() error {
 		p := finance.MonthPeriod(today.Year(), today.Month())
-		act, proj, err := a.Finance.Summary(gctx, p)
+		act, proj, err := a.Finance.Summary(gctx, p, today)
 		d.Month = financeSummary{Label: "This month · " + p.Start.Format("January 2006"), Actual: act, Projected: proj, Href: "/finance?view=month&month=" + p.Start.Format("2006-01")}
 		return err
 	})
 	g.Go(func() error {
 		p := finance.YearPeriod(today.Year())
-		act, proj, err := a.Finance.Summary(gctx, p)
+		act, proj, err := a.Finance.Summary(gctx, p, today)
 		d.Year = financeSummary{Label: "This year · " + p.Start.Format("2006"), Actual: act, Projected: proj, Href: "/finance?view=year&year=" + p.Start.Format("2006")}
 		return err
 	})

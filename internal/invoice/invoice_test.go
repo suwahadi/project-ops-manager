@@ -2,6 +2,8 @@ package invoice
 
 import (
 	"net/url"
+
+	"github.com/suwahadi/project-ops-manager/internal/db/sqlc"
 	"strings"
 	"testing"
 	"time"
@@ -178,16 +180,51 @@ func TestRenewalItems(t *testing.T) {
 		{Name: "old.com", Expiration: exp, Months: 12, Cost: amt("1"), Currency: money.IDR, Cancelled: true},
 		{Name: "b.com", Expiration: exp, Months: 12, Cost: amt("2"), Currency: money.IDR},
 	}
-	cur, items := ClientItems(sources, money.USD)
+	cur, items := ClientItems(sources, nil, money.USD)
 	if cur != money.IDR || len(items) != 2 || items[0].Title != "Renew a.com" || items[1].Title != "Renew b.com" {
 		t.Fatalf("client items: %s %+v", cur, items)
 	}
-	cur, items = ClientItems(sources[:2], money.USD)
+	cur, items = ClientItems(sources[:2], nil, money.USD)
 	if cur != money.USD || len(items) != 1 || items[0].Title != "Renew vps" {
 		t.Fatalf("tie keeps preferred: %s %+v", cur, items)
 	}
-	cur, items = ClientItems(nil, money.IDR)
+	cur, items = ClientItems(nil, nil, money.IDR)
 	if cur != money.IDR || len(items) != 0 {
 		t.Fatal("no assets")
 	}
+}
+
+func TestClientItemsWithProjects(t *testing.T) {
+	exp := time.Date(2026, 11, 28, 0, 0, 0, 0, time.UTC)
+	assets := []RenewalSource{{Name: "vps", Expiration: exp, Months: 1, Cost: amt("5"), Currency: money.USD}}
+	projects := []ProjectSource{
+		{ID: "p1", Name: "Website", Currency: money.IDR, Value: amt("10000000"), Remaining: amt("5000000")},
+		{ID: "p2", Name: "App", Currency: money.IDR, Value: amt("3000000"), Remaining: amt("3000000")},
+		{ID: "p3", Name: "Done", Currency: money.IDR, Value: amt("1000000"), Remaining: 0},
+	}
+	cur, items := ClientItems(assets, projects, money.USD)
+	if cur != money.IDR || len(items) != 2 {
+		t.Fatalf("got %s %+v", cur, items)
+	}
+	if items[0].ProjectID != "p1" || items[0].Rate != "5000000" || items[0].Description != "Remaining balance" || items[1].Description != "Project payment" {
+		t.Fatalf("project rows: %+v", items)
+	}
+}
+
+func TestProjectShares(t *testing.T) {
+	p1, name := "p1", "Website"
+	inv := Invoice{}
+	inv.Items = append(inv.Items,
+		sqlcItem(&p1, &name, "1", "1000", "10"),
+		sqlcItem(nil, nil, "1", "50", "0"),
+		sqlcItem(&p1, &name, "2", "100", "0"),
+	)
+	shares := inv.ProjectShares()
+	if len(shares) != 1 || shares[0].ProjectID != "p1" || shares[0].Name != "Website" || shares[0].Amount != amt("1300") {
+		t.Fatalf("shares: %+v", shares)
+	}
+}
+
+func sqlcItem(projectID, name *string, qty, rate, tax string) sqlc.ListInvoiceItemsRow {
+	return sqlc.ListInvoiceItemsRow{ProjectID: projectID, ProjectName: name, Quantity: amt(qty), Rate: amt(rate), TaxPercent: amt(tax)}
 }

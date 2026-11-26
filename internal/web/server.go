@@ -84,6 +84,8 @@ func registerPrivate(mux *http.ServeMux, app *handlers.App) {
 	mux.HandleFunc("GET /projects/{id}/screenshot", app.ProjectScreenshotImage)
 	mux.HandleFunc("GET /projects/{id}/screenshot/status", app.ProjectScreenshotStatus)
 	mux.HandleFunc("POST /projects/{id}/screenshot", app.ProjectScreenshotRefresh)
+	mux.HandleFunc("POST /projects/{id}/payments", app.ProjectPaymentCreate)
+	mux.HandleFunc("POST /projects/{id}/payments/{pid}/delete", app.ProjectPaymentDelete)
 
 	mux.HandleFunc("GET /clients", app.ClientList)
 	mux.HandleFunc("GET /clients/new", app.ClientNew)

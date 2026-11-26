@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/suwahadi/project-ops-manager/internal/db/sqlc"
+	"github.com/suwahadi/project-ops-manager/internal/money"
 )
 
 const BriefTemplate = "## Overview\n\n\n## Tech Stack\n\n\n## Features\n\n"
@@ -18,11 +19,22 @@ const BriefTemplate = "## Overview\n\n\n## Tech Stack\n\n\n## Features\n\n"
 var ErrNotFound = errors.New("project not found")
 
 type Input struct {
-	Name     string
-	ClientID *string
-	URL      *string
-	Brief    string
-	AssetIDs []string
+	Name        string
+	ClientID    *string
+	URL         *string
+	Brief       string
+	AssetIDs    []string
+	Currency    money.Currency
+	Value       money.NullAmount
+	Cost        money.NullAmount
+	BillingDate *time.Time
+}
+
+func (in Input) currency() string {
+	if in.Currency == "" {
+		return string(money.IDR)
+	}
+	return string(in.Currency)
 }
 
 type Service struct {
@@ -94,7 +106,10 @@ func (s *Service) Create(ctx context.Context, in Input) (string, error) {
 	var id string
 	err := s.inTx(ctx, func(q *sqlc.Queries) error {
 		var err error
-		id, err = q.CreateProject(ctx, sqlc.CreateProjectParams{ClientID: in.ClientID, Name: strings.TrimSpace(in.Name), Url: in.URL, Brief: in.Brief})
+		id, err = q.CreateProject(ctx, sqlc.CreateProjectParams{
+			ClientID: in.ClientID, Name: strings.TrimSpace(in.Name), Url: in.URL, Brief: in.Brief,
+			Currency: in.currency(), ProjectValue: in.Value, ProjectCost: in.Cost, BillingDate: in.BillingDate,
+		})
 		if err != nil {
 			return fmt.Errorf("create project: %w", err)
 		}
@@ -118,7 +133,17 @@ func (s *Service) Update(ctx context.Context, id string, in Input) error {
 		if err != nil {
 			return fmt.Errorf("get project: %w", err)
 		}
-		if err := q.UpdateProject(ctx, sqlc.UpdateProjectParams{ID: id, ClientID: in.ClientID, Name: strings.TrimSpace(in.Name), Url: in.URL, Brief: in.Brief}); err != nil {
+		paid, err := q.ProjectReceived(ctx, id)
+		if err != nil {
+			return fmt.Errorf("sum payments: %w", err)
+		}
+		if err := checkMoneyChange(cur, paid.Received, paid.Payments, in); err != nil {
+			return err
+		}
+		if err := q.UpdateProject(ctx, sqlc.UpdateProjectParams{
+			ID: id, ClientID: in.ClientID, Name: strings.TrimSpace(in.Name), Url: in.URL, Brief: in.Brief,
+			Currency: in.currency(), ProjectValue: in.Value, ProjectCost: in.Cost, BillingDate: in.BillingDate,
+		}); err != nil {
 			return fmt.Errorf("update project: %w", err)
 		}
 		if err := setAssets(ctx, q, id, in.AssetIDs); err != nil {

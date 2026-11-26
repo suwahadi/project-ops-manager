@@ -25,7 +25,7 @@ type Summary struct {
 
 type Invoice struct {
 	sqlc.GetInvoiceRow
-	Items  []sqlc.InvoiceItem
+	Items  []sqlc.ListInvoiceItemsRow
 	Totals Totals
 }
 
@@ -35,11 +35,40 @@ func (i Invoice) IsPaid() bool { return i.Status == StatusPaid }
 
 func (i Invoice) CurrencyCode() money.Currency { return money.Currency(i.Currency) }
 
+type ProjectShare struct {
+	ProjectID string
+	Name      string
+	Amount    money.Amount
+}
+
+func (i Invoice) ProjectShares() []ProjectShare {
+	var out []ProjectShare
+	index := map[string]int{}
+	for _, it := range i.Items {
+		if it.ProjectID == nil {
+			continue
+		}
+		l := ItemLine(it)
+		amount := l.Amount() + l.Tax()
+		if n, ok := index[*it.ProjectID]; ok {
+			out[n].Amount += amount
+			continue
+		}
+		index[*it.ProjectID] = len(out)
+		name := ""
+		if it.ProjectName != nil {
+			name = *it.ProjectName
+		}
+		out = append(out, ProjectShare{ProjectID: *it.ProjectID, Name: name, Amount: amount})
+	}
+	return out
+}
+
 func Overdue(status string, due *time.Time, today time.Time) bool {
 	return status == StatusUnpaid && due != nil && due.Before(today)
 }
 
-func ItemLine(it sqlc.InvoiceItem) Line {
+func ItemLine(it sqlc.ListInvoiceItemsRow) Line {
 	return Line{Quantity: it.Quantity, Rate: it.Rate, TaxPercent: it.TaxPercent}
 }
 
@@ -203,7 +232,7 @@ func writeItems(ctx context.Context, q *sqlc.Queries, id string, items []Item) e
 	for i, it := range items {
 		if err := q.AddInvoiceItem(ctx, sqlc.AddInvoiceItemParams{
 			InvoiceID: id, Position: int32(i + 1), Title: it.Title, Description: it.Description,
-			Quantity: it.Quantity, Rate: it.Rate, TaxPercent: it.TaxPercent,
+			Quantity: it.Quantity, Rate: it.Rate, TaxPercent: it.TaxPercent, ProjectID: it.ProjectID,
 		}); err != nil {
 			return fmt.Errorf("add invoice item: %w", err)
 		}

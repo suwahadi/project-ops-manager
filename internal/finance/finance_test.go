@@ -61,7 +61,7 @@ func TestTwelveMonthsAndBreakdown(t *testing.T) {
 		{Expiration: d("2026-12-05"), PeriodMonths: 1, Currency: money.USD, Cost: 1000, Selling: money.Some(1500), ClientID: "c1", ClientName: "Acme", TypeID: "vps", TypeName: "VPS"},
 		{Expiration: d("2027-03-01"), PeriodMonths: 12, Currency: money.IDR, Cost: 180000, TypeID: "dom", TypeName: "Domain"},
 	}
-	rows := TwelveMonths(items, d("2026-11-21"))
+	rows := TwelveMonths(items, nil, d("2026-11-21"))
 	if len(rows) != 12 || !rows[0].Month.Equal(d("2026-11-01")) {
 		t.Fatalf("rows start = %v", rows[0].Month)
 	}

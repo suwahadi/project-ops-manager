@@ -12,6 +12,7 @@ import (
 	"github.com/suwahadi/project-ops-manager/internal/client"
 	"github.com/suwahadi/project-ops-manager/internal/db/sqlc"
 	"github.com/suwahadi/project-ops-manager/internal/finance"
+	"github.com/suwahadi/project-ops-manager/internal/project"
 )
 
 type clientFormData struct {
@@ -162,6 +163,8 @@ type clientDetailData struct {
 	Totals           []finance.AnnualTotal
 	LinkableAssets   []sqlc.ListAssetsLinkableToClientRow
 	LinkableProjects []sqlc.ListProjectsLinkableToClientRow
+	ProjectTotals    []project.CurrencyTotal
+	ProjectStatus    map[string]string
 }
 
 func (a *App) ClientShow(w http.ResponseWriter, r *http.Request) {
@@ -190,8 +193,17 @@ func (a *App) ClientShow(w http.ResponseWriter, r *http.Request) {
 		a.serverError(w, r, err)
 		return
 	}
+	projectMoney, err := a.Projects.ClientProjects(ctx, c.ID)
+	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
 	today := a.today(r)
-	data := clientDetailData{Client: c, Projects: projects, LinkableAssets: linkableAssets, LinkableProjects: linkableProjects}
+	data := clientDetailData{Client: c, Projects: projects, LinkableAssets: linkableAssets, LinkableProjects: linkableProjects,
+		ProjectTotals: project.ClientTotals(projectMoney), ProjectStatus: map[string]string{}}
+	for _, p := range projectMoney {
+		data.ProjectStatus[p.ID] = project.Money{Value: p.ProjectValue, Received: p.Received}.Status()
+	}
 	var recurring []finance.Recurring
 	for _, row := range rows {
 		cancelled := row.CancelledAt != nil
@@ -285,6 +297,10 @@ func (a *App) clientUnlink(w http.ResponseWriter, r *http.Request, unlink func(c
 		return
 	}
 	err := unlink(r.Context(), c.ID, item)
+	if errors.Is(err, client.ErrHasPayments) {
+		a.redirectWithFlash(w, r, "/clients/"+c.ID, "This project has recorded payments, so it must keep its client.", true)
+		return
+	}
 	if errors.Is(err, client.ErrNotLinked) {
 		a.redirectWithFlash(w, r, "/clients/"+c.ID, "That item no longer belongs to this client.", true)
 		return

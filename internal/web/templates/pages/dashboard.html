@@ -77,7 +77,7 @@
     <a href="{{.Href}}" class="btn-ghost btn-sm">Details</a>
   </div>
   {{if and (not .Actual) (not .Projected)}}
-    <p class="section-desc">No renewals paid or due in this period.</p>
+    <p class="section-desc">Nothing paid or due in this period.</p>
   {{else}}
   <div class="space-y-3">
     {{range .Actual}}{{template "money_line" (dict "Kind" "Actual" "Line" .)}}{{end}}

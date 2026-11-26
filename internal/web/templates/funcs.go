@@ -9,6 +9,7 @@ import (
 
 	"github.com/suwahadi/project-ops-manager/internal/invoice"
 	"github.com/suwahadi/project-ops-manager/internal/money"
+	"github.com/suwahadi/project-ops-manager/internal/project"
 	"github.com/suwahadi/project-ops-manager/internal/web/static"
 )
 
@@ -25,9 +26,17 @@ func baseFuncs() template.FuncMap {
 			}
 			return FormatDateTime(*t, loc)
 		},
-		"money":      formatMoney,
-		"decimal":    invoice.FormatDecimal,
-		"plainMoney": plainMoney,
+		"money":        formatMoney,
+		"decimal":      invoice.FormatDecimal,
+		"plainMoney":   plainMoney,
+		"paymentLabel": project.StatusLabel,
+		"rowMoney":     project.RowMoney,
+		"dateValue": func(t *time.Time) string {
+			if t == nil {
+				return ""
+			}
+			return t.Format("2006-01-02")
+		},
 		"nullMoney": func(n money.NullAmount, cur string) string {
 			if !n.Valid {
 				return "—"

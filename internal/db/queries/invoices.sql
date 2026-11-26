@@ -15,7 +15,11 @@ LEFT JOIN clients c ON c.id = i.client_id
 WHERE i.id = $1;
 
 -- name: ListInvoiceItems :many
-SELECT * FROM invoice_items WHERE invoice_id = $1 ORDER BY position;
+SELECT ii.*, p.name AS project_name
+FROM invoice_items ii
+LEFT JOIN projects p ON p.id = ii.project_id
+WHERE ii.invoice_id = $1
+ORDER BY ii.position;
 
 -- name: InvoiceNumberTaken :one
 SELECT EXISTS (
@@ -39,8 +43,8 @@ UPDATE invoices SET status = $2, paid_date = $3, updated_at = now() WHERE id = $
 DELETE FROM invoice_items WHERE invoice_id = $1;
 
 -- name: AddInvoiceItem :exec
-INSERT INTO invoice_items (invoice_id, position, title, description, quantity, rate, tax_percent)
-VALUES ($1, $2, $3, $4, $5, $6, $7);
+INSERT INTO invoice_items (invoice_id, position, title, description, quantity, rate, tax_percent, project_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
 
 -- name: DeleteInvoice :execrows
 DELETE FROM invoices WHERE id = $1;

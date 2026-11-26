@@ -152,7 +152,9 @@
       if (!src) {
         return;
       }
-      var show = spec[1].split(",").indexOf(src.value) !== -1;
+      var negate = spec[1].charAt(0) === "!";
+      var listed = spec[1].replace(/^!/, "").split(",").indexOf(src.value) !== -1;
+      var show = negate ? !listed : listed;
       el.hidden = !show;
       el.querySelectorAll("input, select, textarea").forEach(function (f) {
         f.disabled = !show;

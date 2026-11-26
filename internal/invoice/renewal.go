@@ -45,11 +45,32 @@ func RenewalItem(src RenewalSource) ItemForm {
 	}
 }
 
-func ClientItems(sources []RenewalSource, preferred money.Currency) (money.Currency, []ItemForm) {
+type ProjectSource struct {
+	ID        string
+	Name      string
+	Currency  money.Currency
+	Value     money.Amount
+	Remaining money.Amount
+}
+
+func ProjectItem(p ProjectSource) ItemForm {
+	desc := "Project payment"
+	if p.Remaining < p.Value {
+		desc = "Remaining balance"
+	}
+	return ItemForm{ProjectID: p.ID, Title: p.Name, Description: desc, Quantity: "1", Rate: FormatDecimal(p.Remaining), Tax: "0"}
+}
+
+func ClientItems(assets []RenewalSource, projects []ProjectSource, preferred money.Currency) (money.Currency, []ItemForm) {
 	counts := map[money.Currency]int{}
-	for _, s := range sources {
+	for _, s := range assets {
 		if !s.Cancelled {
 			counts[s.Currency]++
+		}
+	}
+	for _, p := range projects {
+		if p.Remaining > 0 {
+			counts[p.Currency]++
 		}
 	}
 	cur := preferred
@@ -60,9 +81,14 @@ func ClientItems(sources []RenewalSource, preferred money.Currency) (money.Curre
 		}
 	}
 	var items []ItemForm
-	for _, s := range sources {
+	for _, s := range assets {
 		if !s.Cancelled && s.Currency == cur {
 			items = append(items, RenewalItem(s))
+		}
+	}
+	for _, p := range projects {
+		if p.Remaining > 0 && p.Currency == cur {
+			items = append(items, ProjectItem(p))
 		}
 	}
 	return cur, items

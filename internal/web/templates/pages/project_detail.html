@@ -4,6 +4,7 @@
 <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
   <div class="badge-row min-w-0">{{template "owner_badge" $p.ClientName}}{{with $p.Url}}<a href="{{.}}" target="_blank" rel="noopener noreferrer" class="inline-flex min-w-0 items-center gap-1 break-all text-sm text-indigo-700 underline dark:text-indigo-300">{{.}}{{icon "external" "h-3.5 w-3.5"}}</a>{{end}}</div>
   <div class="page-actions">
+    {{if and $p.ClientID $d.Money.Value.Valid}}<a href="/invoices/new?project={{$p.ID}}" class="btn-secondary full">Create invoice</a>{{end}}
     <a href="/projects/{{$p.ID}}/edit" class="btn-secondary">Edit</a>
     {{template "confirm_button" (dict "ID" "delete-project" "Class" "btn-danger" "Label" "Delete" "Action" (print "/projects/" $p.ID "/delete") "CSRF" .CSRF "Title" "Delete this project?" "Body" "The brief, asset links and screenshot are removed. Linked assets are not deleted." "Confirm" "Delete project" "Danger" true)}}
   </div>
@@ -16,7 +17,9 @@
       {{if $p.Brief}}<div class="prose-md">{{$d.BriefHTML}}</div>{{else}}<p class="section-desc">No brief yet.</p>{{end}}
     </div></section>
   </div>
-  <section class="card lg:col-span-2"><div class="card-body">
+  <div class="space-y-4 sm:space-y-6 lg:col-span-2">
+  {{if $p.ClientID}}{{template "project_money" (dict "Project" $p "Money" $d.Money "Payments" $d.Payments "Today" $d.Today "CSRF" .CSRF)}}{{end}}
+  <section class="card"><div class="card-body">
     <h2 class="card-title mb-4">Linked assets</h2>
     {{if not $d.Assets}}<p class="section-desc">No linked assets. <a href="/projects/{{$p.ID}}/edit" class="text-indigo-700 underline dark:text-indigo-300">Link assets</a></p>{{else}}
     <ul class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -29,7 +32,60 @@
     </ul>
     {{end}}
   </div></section>
+  </div>
 </div>
+{{end}}
+
+{{define "project_money"}}{{$p := .Project}}{{$m := .Money}}{{$cur := $m.Currency}}
+<section class="card"><div class="card-body">
+  <div class="card-header">
+    <h2 class="card-title">Payments</h2>
+    {{template "payment_badge" $m.Status}}
+  </div>
+  {{if not $m.Value.Valid}}
+    <p class="section-desc">Set a project value to track payments. <a href="/projects/{{$p.ID}}/edit" class="text-indigo-700 underline dark:text-indigo-300">Add pricing</a></p>
+  {{else}}
+  <div class="mb-1 flex items-baseline justify-between gap-2 text-sm"><span class="text-slate-500 dark:text-slate-400">Received</span><span class="font-medium tabular-nums">{{money $m.Received $cur}} of {{money $m.Value.Amount $cur}}</span></div>
+  <progress class="progress-bar" max="100" value="{{$m.PercentReceived}}" aria-label="Received">{{$m.PercentReceived}}%</progress>
+  <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
+    <div><dt class="stat-label">Remaining</dt><dd class="stat-value">{{money $m.Remaining $cur}}</dd></div>
+    <div><dt class="stat-label">Billing date</dt><dd class="stat-value">{{datePtr $p.BillingDate}}</dd></div>
+    <div><dt class="stat-label">Cost</dt><dd class="stat-value">{{if $m.Cost.Valid}}{{money $m.Cost.Amount $cur}}{{else}}—{{end}}</dd></div>
+    <div><dt class="stat-label">Margin</dt><dd class="stat-value">{{with $m.MarginValue}}{{if .Valid}}{{money .Amount $cur}}{{else}}—{{end}}{{end}}</dd></div>
+  </dl>
+  {{if .Payments}}
+  <ul class="mt-4 divide-y divide-slate-100 border-t border-slate-100 dark:divide-slate-800 dark:border-slate-800">
+    {{range .Payments}}
+    <li class="flex items-center justify-between gap-3 py-2.5">
+      <div class="min-w-0">
+        <div class="text-sm font-medium tabular-nums">{{money .Amount $cur}}</div>
+        <div class="truncate text-xs text-slate-500 dark:text-slate-400">{{date .ReceivedOn}}{{if .InvoiceNumber}} · <a href="/invoices/{{deref .InvoiceID}}" class="underline hover:text-slate-800 dark:hover:text-white">{{deref .InvoiceNumber}}</a>{{end}}{{with .Note}} · {{.}}{{end}}</div>
+      </div>
+      {{template "confirm_button" (dict "ID" (print "delete-payment-" .ID) "Class" "btn-ghost btn-sm text-red-700 dark:text-red-400" "Label" "Delete" "Action" (print "/projects/" $p.ID "/payments/" .ID "/delete") "CSRF" $.CSRF "Title" "Delete this payment?" "Body" "The payment is removed from the project and from Finance." "Confirm" "Delete payment" "Danger" true)}}
+    </li>
+    {{end}}
+  </ul>
+  {{end}}
+  {{if $m.Remaining}}
+  <div class="mt-4"><button type="button" class="btn-primary w-full" data-confirm-open="record-payment">{{icon "plus"}}Record payment</button></div>
+  <dialog id="record-payment" class="modal" aria-labelledby="record-payment-title">
+    <form method="post" action="/projects/{{$p.ID}}/payments" class="card-body space-y-4">
+      {{template "csrf" .CSRF}}
+      <h2 id="record-payment-title" class="text-lg font-semibold">Record payment</h2>
+      <div class="form-grid">
+        <div><label for="pay-date" class="label">Received on</label><input id="pay-date" name="received_on" type="date" required class="input" value="{{.Today}}"></div>
+        <div><label for="pay-amount" class="label">Amount ({{$cur}})</label><input id="pay-amount" name="amount" inputmode="decimal" required class="input" value="{{decimal $m.Remaining}}"></div>
+        <div class="sm:col-span-2"><label for="pay-note" class="label">Note</label><input id="pay-note" name="note" class="input"></div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" data-dialog-close>Cancel</button>
+        <button type="submit" class="btn-primary">Record payment</button>
+      </div>
+    </form>
+  </dialog>
+  {{end}}
+  {{end}}
+</div></section>
 {{end}}
 
 {{define "screenshot_panel"}}

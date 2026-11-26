@@ -312,6 +312,17 @@ func (q *Queries) ListProjectsLinkableToClient(ctx context.Context, clientID str
 	return items, nil
 }
 
+const projectHasPayments = `-- name: ProjectHasPayments :one
+SELECT EXISTS (SELECT 1 FROM project_payments WHERE project_id = $1)
+`
+
+func (q *Queries) ProjectHasPayments(ctx context.Context, projectID string) (bool, error) {
+	row := q.db.QueryRow(ctx, projectHasPayments, projectID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const unlinkAssetFromClient = `-- name: UnlinkAssetFromClient :execrows
 UPDATE assets SET client_id = NULL, selling_price = NULL, updated_at = now()
 WHERE id = $1::uuid AND client_id = $2::uuid
@@ -331,8 +342,9 @@ func (q *Queries) UnlinkAssetFromClient(ctx context.Context, arg UnlinkAssetFrom
 }
 
 const unlinkProjectFromClient = `-- name: UnlinkProjectFromClient :execrows
-UPDATE projects SET client_id = NULL, updated_at = now()
+UPDATE projects SET client_id = NULL, project_value = NULL, project_cost = NULL, billing_date = NULL, updated_at = now()
 WHERE id = $1::uuid AND client_id = $2::uuid
+  AND NOT EXISTS (SELECT 1 FROM project_payments pp WHERE pp.project_id = $1::uuid)
 `
 
 type UnlinkProjectFromClientParams struct {

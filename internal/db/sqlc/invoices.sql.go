@@ -13,8 +13,8 @@ import (
 )
 
 const addInvoiceItem = `-- name: AddInvoiceItem :exec
-INSERT INTO invoice_items (invoice_id, position, title, description, quantity, rate, tax_percent)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO invoice_items (invoice_id, position, title, description, quantity, rate, tax_percent, project_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 `
 
 type AddInvoiceItemParams struct {
@@ -25,6 +25,7 @@ type AddInvoiceItemParams struct {
 	Quantity    money.Amount
 	Rate        money.Amount
 	TaxPercent  money.Amount
+	ProjectID   *string
 }
 
 func (q *Queries) AddInvoiceItem(ctx context.Context, arg AddInvoiceItemParams) error {
@@ -36,6 +37,7 @@ func (q *Queries) AddInvoiceItem(ctx context.Context, arg AddInvoiceItemParams) 
 		arg.Quantity,
 		arg.Rate,
 		arg.TaxPercent,
+		arg.ProjectID,
 	)
 	return err
 }
@@ -199,18 +201,35 @@ func (q *Queries) ListAllInvoiceItems(ctx context.Context) ([]ListAllInvoiceItem
 }
 
 const listInvoiceItems = `-- name: ListInvoiceItems :many
-SELECT id, invoice_id, position, title, description, quantity, rate, tax_percent FROM invoice_items WHERE invoice_id = $1 ORDER BY position
+SELECT ii.id, ii.invoice_id, ii.position, ii.title, ii.description, ii.quantity, ii.rate, ii.tax_percent, ii.project_id, p.name AS project_name
+FROM invoice_items ii
+LEFT JOIN projects p ON p.id = ii.project_id
+WHERE ii.invoice_id = $1
+ORDER BY ii.position
 `
 
-func (q *Queries) ListInvoiceItems(ctx context.Context, invoiceID string) ([]InvoiceItem, error) {
+type ListInvoiceItemsRow struct {
+	ID          string
+	InvoiceID   string
+	Position    int32
+	Title       string
+	Description string
+	Quantity    money.Amount
+	Rate        money.Amount
+	TaxPercent  money.Amount
+	ProjectID   *string
+	ProjectName *string
+}
+
+func (q *Queries) ListInvoiceItems(ctx context.Context, invoiceID string) ([]ListInvoiceItemsRow, error) {
 	rows, err := q.db.Query(ctx, listInvoiceItems, invoiceID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []InvoiceItem{}
+	items := []ListInvoiceItemsRow{}
 	for rows.Next() {
-		var i InvoiceItem
+		var i ListInvoiceItemsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.InvoiceID,
@@ -220,6 +239,8 @@ func (q *Queries) ListInvoiceItems(ctx context.Context, invoiceID string) ([]Inv
 			&i.Quantity,
 			&i.Rate,
 			&i.TaxPercent,
+			&i.ProjectID,
+			&i.ProjectName,
 		); err != nil {
 			return nil, err
 		}

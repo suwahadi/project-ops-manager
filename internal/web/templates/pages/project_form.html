@@ -27,6 +27,34 @@
     </div>
   </div></section>
 
+  <section class="card" data-show-if="owner:!internal"{{if eq $d.Owner "internal"}} hidden{{end}}><div class="card-body">
+    <h2 class="card-title mb-4">Pricing</h2>
+    <div class="form-grid">
+      <div>
+        <label for="currency" class="label">Currency</label>
+        <select id="currency" name="currency" data-combobox class="input{{if $e.currency}} input-error{{end}}">
+          {{range $d.Currencies}}<option value="{{.}}"{{if eq (print .) $d.Currency}} selected{{end}}>{{.}}</option>{{end}}
+        </select>
+        {{template "field_error" $e.currency}}
+      </div>
+      <div>
+        <label for="billing_date" class="label">Billing date</label>
+        <input id="billing_date" name="billing_date" type="date" class="input{{if $e.billing_date}} input-error{{end}}" value="{{$d.BillingDate}}">
+        {{template "field_error" $e.billing_date}}
+      </div>
+      <div>
+        <label for="project_value" class="label">Project value</label>
+        <input id="project_value" name="project_value" inputmode="decimal" class="input{{if $e.project_value}} input-error{{end}}" value="{{$d.Value}}">
+        {{template "field_error" $e.project_value}}
+      </div>
+      <div>
+        <label for="project_cost" class="label">Project cost</label>
+        <input id="project_cost" name="project_cost" inputmode="decimal" class="input{{if $e.project_cost}} input-error{{end}}" value="{{$d.Cost}}">
+        {{template "field_error" $e.project_cost}}
+      </div>
+    </div>
+  </div></section>
+
   <section class="card"><div class="card-body" data-tabs>
     <div class="card-header">
       <h2 class="card-title">Brief</h2>

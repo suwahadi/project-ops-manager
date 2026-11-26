@@ -416,7 +416,12 @@ docker run --rm -v opsmanager_uploads:/data -v /var/backups/opsmanager:/backup d
   - Each row has a bold item title, a multi-line description, quantity, rate and tax %. Totals are recalculated on the server when you save.
   - **Mark paid** asks for the payment date, adds a green PAID ribbon and sets Amount Due to zero. **Mark unpaid** reverses it.
   - **Download PDF** prints an A4 PDF through the Chromium container and names it after the invoice number. If Chromium is down, the page shows an error instead.
-  - Invoices are not included in the Finance page totals.
+  - Invoices are not included in the Finance page totals; record project payments instead (below).
+- **Project pricing** (client projects only):
+  - Set the currency, project value, project cost and an optional billing date on the project form.
+  - Use **Record payment** on the project page for every amount received (a deposit, then the rest). Payments cannot exceed the project value.
+  - Finance counts each payment as revenue on its date, with the matching share of the project cost. The unpaid balance is projected on the billing date.
+  - **Create invoice** on a project bills its remaining balance. When that invoice is marked paid, its page offers **Record payment** for each project on it.
 
 ## Development
 

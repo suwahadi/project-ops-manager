@@ -51,7 +51,7 @@ func (a *App) FinancePage(w http.ResponseWriter, r *http.Request) {
 		data.Years = append(data.Years, y)
 	}
 	var err error
-	if data.Report, err = a.Finance.Report(r.Context(), p); err != nil {
+	if data.Report, err = a.Finance.Report(r.Context(), p, today); err != nil {
 		a.serverError(w, r, err)
 		return
 	}

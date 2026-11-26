@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/suwahadi/project-ops-manager/internal/db/sqlc"
+	"github.com/suwahadi/project-ops-manager/internal/money"
 )
 
 const OwnerInternal = "internal"
@@ -21,18 +22,32 @@ var ScreenshotOptions = []Option{
 	{"none", "No screenshot"},
 }
 
+var PaymentOptions = []Option{
+	{"", "All payments"},
+	{PaymentUnpaid, "Unpaid"},
+	{PaymentPartial, "Partially paid"},
+	{PaymentPaid, "Paid"},
+	{PaymentNone, "No value"},
+}
+
 var SortOptions = []Option{
 	{"", "Name (A–Z)"},
 	{"name_desc", "Name (Z–A)"},
 	{"updated_desc", "Recently updated"},
 	{"assets_desc", "Most assets"},
+	{"value_desc", "Value (highest first)"},
 }
 
 type Filter struct {
 	Query      string
 	Owner      string
 	Screenshot string
+	Payment    string
 	Sort       string
+}
+
+func RowMoney(r sqlc.ListProjectsRow) Money {
+	return Money{Currency: money.Currency(r.Currency), Value: r.ProjectValue, Cost: r.ProjectCost, Received: r.Received}
 }
 
 func validOption(opts []Option, v string) string {
@@ -49,6 +64,7 @@ func ParseFilter(q url.Values, isID func(string) bool) Filter {
 		Query:      strings.TrimSpace(q.Get("q")),
 		Owner:      q.Get("owner"),
 		Screenshot: validOption(ScreenshotOptions, q.Get("screenshot")),
+		Payment:    validOption(PaymentOptions, q.Get("payment")),
 		Sort:       validOption(SortOptions, q.Get("sort")),
 	}
 	if f.Owner != OwnerInternal && !isID(f.Owner) {
@@ -57,11 +73,13 @@ func ParseFilter(q url.Values, isID func(string) bool) Filter {
 	return f
 }
 
-func (f Filter) Filtered() bool { return f.Query != "" || f.Owner != "" || f.Screenshot != "" }
+func (f Filter) Filtered() bool {
+	return f.Query != "" || f.Owner != "" || f.Screenshot != "" || f.Payment != ""
+}
 
 func (f Filter) Active() int {
 	n := 0
-	for _, v := range []string{f.Owner, f.Screenshot, f.Sort} {
+	for _, v := range []string{f.Owner, f.Screenshot, f.Payment, f.Sort} {
 		if v != "" {
 			n++
 		}
@@ -93,6 +111,9 @@ func matches(row sqlc.ListProjectsRow, f Filter) bool {
 			return false
 		}
 	}
+	if f.Payment != "" && RowMoney(row).Status() != f.Payment {
+		return false
+	}
 	if f.Query == "" {
 		return true
 	}
@@ -118,6 +139,8 @@ func Apply(rows []sqlc.ListProjectsRow, f Filter) []sqlc.ListProjectsRow {
 			return b.UpdatedAt.Compare(a.UpdatedAt)
 		case "assets_desc":
 			return cmp.Or(cmp.Compare(b.AssetCount, a.AssetCount), byName(a, b))
+		case "value_desc":
+			return cmp.Or(cmp.Compare(b.ProjectValue.Amount, a.ProjectValue.Amount), byName(a, b))
 		}
 		return byName(a, b)
 	})

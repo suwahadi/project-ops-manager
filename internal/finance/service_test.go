@@ -55,7 +55,7 @@ func TestRenewAndReport(t *testing.T) {
 	}
 
 	svc := finance.NewService(pool)
-	rep, err := svc.Report(ctx, finance.MonthPeriod(2026, time.November))
+	rep, err := svc.Report(ctx, finance.MonthPeriod(2026, time.November), day("2026-11-21"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +65,7 @@ func TestRenewAndReport(t *testing.T) {
 	if len(rep.Projected) != 0 {
 		t.Fatalf("november projection should be empty after renewal: %+v", rep.Projected)
 	}
-	year, err := svc.Report(ctx, finance.YearPeriod(2027))
+	year, err := svc.Report(ctx, finance.YearPeriod(2027), day("2026-11-21"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +78,7 @@ func TestRenewAndReport(t *testing.T) {
 	if err := assets.Cancel(ctx, id, time.Now()); err != nil {
 		t.Fatal(err)
 	}
-	year, _ = svc.Report(ctx, finance.YearPeriod(2027))
+	year, _ = svc.Report(ctx, finance.YearPeriod(2027), day("2026-11-21"))
 	if len(year.Projected) != 0 {
 		t.Fatal("cancelled assets must not be projected")
 	}

@@ -16,6 +16,7 @@ const (
 )
 
 type ItemForm struct {
+	ProjectID   string
 	Title       string
 	Description string
 	Quantity    string
@@ -38,6 +39,7 @@ type Form struct {
 }
 
 type Item struct {
+	ProjectID   *string
 	Title       string
 	Description string
 	Quantity    money.Amount
@@ -145,10 +147,13 @@ func (f Form) Validate(clientName func(id string) (string, bool)) (Input, map[st
 func validateItems(forms []ItemForm, errs map[string]string) ([]Item, map[string]string) {
 	var items []Item
 	for i, it := range forms {
-		if it == (ItemForm{}) {
+		if it == (ItemForm{ProjectID: it.ProjectID}) {
 			continue
 		}
 		item := Item{Title: strings.TrimSpace(it.Title), Description: strings.TrimRight(it.Description, " \t\r\n")}
+		if id := strings.TrimSpace(it.ProjectID); id != "" {
+			item.ProjectID = &id
+		}
 		if item.Title == "" {
 			errs[ItemKey("item_title", i)] = "Item is required."
 		}

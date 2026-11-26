@@ -12,6 +12,7 @@ import (
 	"github.com/suwahadi/project-ops-manager/internal/db/sqlc"
 	"github.com/suwahadi/project-ops-manager/internal/invoice"
 	"github.com/suwahadi/project-ops-manager/internal/money"
+	"github.com/suwahadi/project-ops-manager/internal/project"
 	"github.com/suwahadi/project-ops-manager/internal/settings"
 	"github.com/suwahadi/project-ops-manager/internal/web/static"
 )
@@ -116,8 +117,39 @@ func (a *App) clientInvoiceItems(ctx context.Context, clientID string, preferred
 			Cost: r.CostPrice, Selling: r.SellingPrice, Currency: money.Currency(r.Currency), Cancelled: r.CancelledAt != nil,
 		}
 	}
-	cur, items := invoice.ClientItems(sources, preferred)
+	projects, err := a.Projects.ClientProjects(ctx, clientID)
+	if err != nil {
+		return preferred, nil, err
+	}
+	var projectSources []invoice.ProjectSource
+	for _, p := range projects {
+		if !p.ProjectValue.Valid {
+			continue
+		}
+		m := project.Money{Value: p.ProjectValue, Received: p.Received}
+		projectSources = append(projectSources, invoice.ProjectSource{
+			ID: p.ID, Name: p.Name, Currency: money.Currency(p.Currency), Value: p.ProjectValue.Amount, Remaining: m.Remaining(),
+		})
+	}
+	cur, items := invoice.ClientItems(sources, projectSources, preferred)
 	return cur, items, nil
+}
+
+func (a *App) projectInvoiceItem(ctx context.Context, id string, f *invoice.Form) {
+	p, err := a.Projects.Get(ctx, id)
+	if err != nil || p.ClientID == nil || !p.ProjectValue.Valid {
+		return
+	}
+	m, err := a.Projects.Money(ctx, p)
+	if err != nil || m.Remaining() <= 0 {
+		return
+	}
+	f.ClientID = *p.ClientID
+	f.BillTo = deref(p.ClientName)
+	f.Currency = p.Currency
+	f.Items = []invoice.ItemForm{invoice.ProjectItem(invoice.ProjectSource{
+		ID: p.ID, Name: p.Name, Currency: m.Currency, Value: p.ProjectValue.Amount, Remaining: m.Remaining(),
+	})}
 }
 
 func (a *App) InvoiceNew(w http.ResponseWriter, r *http.Request) {
@@ -148,6 +180,9 @@ func (a *App) InvoiceNew(w http.ResponseWriter, r *http.Request) {
 				f.BillTo = deref(d.ClientName)
 			}
 		}
+	}
+	if id := r.URL.Query().Get("project"); isUUID(id) {
+		a.projectInvoiceItem(ctx, id, &f)
 	}
 	if id := r.URL.Query().Get("client"); isUUID(id) && f.ClientID == "" {
 		if c, err := a.Clients.Get(ctx, id); err == nil {
@@ -184,8 +219,12 @@ func invoiceFormFrom(r *http.Request) invoice.Form {
 			}
 			return ""
 		}
+		projectID := at("item_project")
+		if !isUUID(projectID) {
+			projectID = ""
+		}
 		f.Items = append(f.Items, invoice.ItemForm{
-			Title: titles[i], Description: at("item_description"), Quantity: at("item_quantity"), Rate: at("item_rate"), Tax: at("item_tax"),
+			ProjectID: projectID, Title: titles[i], Description: at("item_description"), Quantity: at("item_quantity"), Rate: at("item_rate"), Tax: at("item_tax"),
 		})
 	}
 	if len(f.Items) > invoice.MaxItems+1 {
@@ -207,8 +246,20 @@ func (a *App) clientNameLookup(ctx context.Context) func(string) (string, bool) 
 	}
 }
 
+func (a *App) dropUnknownProjects(ctx context.Context, f *invoice.Form) {
+	for i, it := range f.Items {
+		if it.ProjectID == "" {
+			continue
+		}
+		if _, err := a.Projects.Get(ctx, it.ProjectID); err != nil {
+			f.Items[i].ProjectID = ""
+		}
+	}
+}
+
 func (a *App) InvoiceCreate(w http.ResponseWriter, r *http.Request) {
 	f := invoiceFormFrom(r)
+	a.dropUnknownProjects(r.Context(), &f)
 	in, errs := f.Validate(a.clientNameLookup(r.Context()))
 	if len(errs) == 0 {
 		id, err := a.Invoices.Create(r.Context(), in)
@@ -259,7 +310,7 @@ func formFromInvoice(inv invoice.Invoice) invoice.Form {
 	}
 	for _, it := range inv.Items {
 		f.Items = append(f.Items, invoice.ItemForm{
-			Title: it.Title, Description: it.Description, Quantity: invoice.FormatDecimal(it.Quantity),
+			ProjectID: deref(it.ProjectID), Title: it.Title, Description: it.Description, Quantity: invoice.FormatDecimal(it.Quantity),
 			Rate: invoice.FormatDecimal(it.Rate), Tax: invoice.FormatDecimal(it.TaxPercent),
 		})
 	}
@@ -281,6 +332,7 @@ func (a *App) InvoiceUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	f := invoiceFormFrom(r)
 	f.AssetID = deref(inv.AssetID)
+	a.dropUnknownProjects(r.Context(), &f)
 	in, errs := f.Validate(a.clientNameLookup(r.Context()))
 	if len(errs) == 0 {
 		err := a.Invoices.Update(r.Context(), inv.ID, in)
@@ -304,11 +356,17 @@ type invoiceSheet struct {
 	Overdue bool
 }
 
-func (s invoiceSheet) Line(it sqlc.InvoiceItem) invoice.Line { return invoice.ItemLine(it) }
+func (s invoiceSheet) Line(it sqlc.ListInvoiceItemsRow) invoice.Line { return invoice.ItemLine(it) }
+
+type invoiceProjectPayment struct {
+	invoice.ProjectShare
+	Recorded bool
+}
 
 type invoiceDetailData struct {
-	Sheet invoiceSheet
-	Today string
+	Sheet    invoiceSheet
+	Today    string
+	Projects []invoiceProjectPayment
 }
 
 func (a *App) invoiceSheet(r *http.Request, inv invoice.Invoice) (invoiceSheet, error) {
@@ -329,7 +387,18 @@ func (a *App) InvoiceShow(w http.ResponseWriter, r *http.Request) {
 		a.serverError(w, r, err)
 		return
 	}
-	a.render(w, r, http.StatusOK, "invoice_detail", inv.Number, "invoices", invoiceDetailData{Sheet: sheet, Today: a.today(r).Format("2006-01-02")})
+	d := invoiceDetailData{Sheet: sheet, Today: a.today(r).Format("2006-01-02")}
+	if shares := inv.ProjectShares(); len(shares) > 0 {
+		recorded, err := a.Projects.InvoicePayments(r.Context(), inv.ID)
+		if err != nil {
+			a.serverError(w, r, err)
+			return
+		}
+		for _, sh := range shares {
+			d.Projects = append(d.Projects, invoiceProjectPayment{ProjectShare: sh, Recorded: recorded[sh.ProjectID]})
+		}
+	}
+	a.render(w, r, http.StatusOK, "invoice_detail", inv.Number, "invoices", d)
 }
 
 type invoiceDocument struct {

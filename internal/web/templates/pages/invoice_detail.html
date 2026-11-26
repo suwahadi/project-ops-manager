@@ -18,6 +18,37 @@
     {{template "confirm_button" (dict "ID" "delete-invoice" "Class" "btn-danger" "Label" "Delete" "Action" (print "/invoices/" $i.ID "/delete") "CSRF" .CSRF "Title" (print "Delete " $i.Number "?") "Body" "The invoice and its items are deleted permanently." "Confirm" "Delete invoice" "Danger" true)}}
   </div>
 </div>
+{{if and $i.IsPaid $d.Projects}}
+<section class="card mx-auto mb-4 max-w-4xl sm:mb-6"><div class="card-body">
+  <h2 class="card-title mb-3">Project payments</h2>
+  <ul class="divide-y divide-slate-100 dark:divide-slate-800">
+    {{range $d.Projects}}
+    <li class="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+      <div class="min-w-0"><a href="/projects/{{.ProjectID}}" class="font-medium hover:underline">{{.Name}}</a><div class="text-sm tabular-nums text-slate-500 dark:text-slate-400">{{money .Amount $i.Currency}}</div></div>
+      {{if .Recorded}}<span class="badge-active">{{icon "check" "h-3.5 w-3.5"}}Payment recorded</span>{{else}}<button type="button" class="btn-secondary btn-sm" data-confirm-open="record-{{.ProjectID}}">{{icon "plus" "h-4 w-4"}}Record payment</button>{{end}}
+    </li>
+    {{end}}
+  </ul>
+</div></section>
+{{range $d.Projects}}{{if not .Recorded}}
+<dialog id="record-{{.ProjectID}}" class="modal" aria-labelledby="record-{{.ProjectID}}-title">
+  <form method="post" action="/projects/{{.ProjectID}}/payments" class="card-body space-y-4">
+    {{template "csrf" $.CSRF}}
+    <input type="hidden" name="invoice_id" value="{{$i.ID}}">
+    <input type="hidden" name="return" value="invoice">
+    <h2 id="record-{{.ProjectID}}-title" class="text-lg font-semibold">Record payment for {{.Name}}</h2>
+    <div class="form-grid">
+      <div><label for="rp-date-{{.ProjectID}}" class="label">Received on</label><input id="rp-date-{{.ProjectID}}" name="received_on" type="date" required class="input" value="{{dateValue $i.PaidDate}}"></div>
+      <div><label for="rp-amount-{{.ProjectID}}" class="label">Amount ({{$i.Currency}})</label><input id="rp-amount-{{.ProjectID}}" name="amount" inputmode="decimal" required class="input" value="{{decimal .Amount}}"></div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-dialog-close>Cancel</button>
+      <button type="submit" class="btn-primary">Record payment</button>
+    </div>
+  </form>
+</dialog>
+{{end}}{{end}}
+{{end}}
 <div class="inv-screen mx-auto max-w-4xl overflow-hidden rounded-xl border border-slate-200 shadow-sm dark:border-slate-700">
   {{template "invoice_sheet" $d.Sheet}}
 </div>

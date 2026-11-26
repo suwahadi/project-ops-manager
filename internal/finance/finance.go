@@ -45,6 +45,7 @@ type Entry struct {
 	ClientName string
 	TypeID     string
 	TypeName   string
+	Source     string
 }
 
 type Projectable struct {
@@ -84,7 +85,7 @@ func Project(items []Projectable, p Period) []Entry {
 	for _, it := range items {
 		for _, d := range Occurrences(it.Expiration, it.PeriodMonths, p) {
 			out = append(out, Entry{Date: d, Currency: it.Currency, Cost: it.Cost, Selling: it.Selling,
-				ClientID: it.ClientID, ClientName: it.ClientName, TypeID: it.TypeID, TypeName: it.TypeName})
+				ClientID: it.ClientID, ClientName: it.ClientName, TypeID: it.TypeID, TypeName: it.TypeName, Source: SourceAsset})
 		}
 	}
 	return out
@@ -131,13 +132,14 @@ type MonthRow struct {
 	Lines []Line
 }
 
-func TwelveMonths(items []Projectable, first time.Time) []MonthRow {
-	start := time.Date(first.Year(), first.Month(), 1, 0, 0, 0, 0, time.UTC)
+func TwelveMonths(items []Projectable, projects []BillableProject, today time.Time) []MonthRow {
+	start := time.Date(today.Year(), today.Month(), 1, 0, 0, 0, 0, time.UTC)
 	rows := make([]MonthRow, 0, 12)
 	for i := 0; i < 12; i++ {
 		m := start.AddDate(0, i, 0)
 		p := MonthPeriod(m.Year(), m.Month())
-		rows = append(rows, MonthRow{Month: m, Lines: Sum(Project(items, p))})
+		entries := append(Project(items, p), ProjectProjected(projects, p, today)...)
+		rows = append(rows, MonthRow{Month: m, Lines: Sum(entries)})
 	}
 	return rows
 }

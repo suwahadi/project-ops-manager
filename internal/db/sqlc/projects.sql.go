@@ -8,6 +8,8 @@ package sqlc
 import (
 	"context"
 	"time"
+
+	"github.com/suwahadi/project-ops-manager/internal/money"
 )
 
 const addProjectAsset = `-- name: AddProjectAsset :exec
@@ -96,14 +98,19 @@ func (q *Queries) CompleteScreenshot(ctx context.Context, arg CompleteScreenshot
 }
 
 const createProject = `-- name: CreateProject :one
-INSERT INTO projects (client_id, name, url, brief) VALUES ($1, $2, $3, $4) RETURNING id
+INSERT INTO projects (client_id, name, url, brief, currency, project_value, project_cost, billing_date)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id
 `
 
 type CreateProjectParams struct {
-	ClientID *string
-	Name     string
-	Url      *string
-	Brief    string
+	ClientID     *string
+	Name         string
+	Url          *string
+	Brief        string
+	Currency     string
+	ProjectValue money.NullAmount
+	ProjectCost  money.NullAmount
+	BillingDate  *time.Time
 }
 
 func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (string, error) {
@@ -112,6 +119,36 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (s
 		arg.Name,
 		arg.Url,
 		arg.Brief,
+		arg.Currency,
+		arg.ProjectValue,
+		arg.ProjectCost,
+		arg.BillingDate,
+	)
+	var id string
+	err := row.Scan(&id)
+	return id, err
+}
+
+const createProjectPayment = `-- name: CreateProjectPayment :one
+INSERT INTO project_payments (project_id, received_on, amount, note, invoice_id)
+VALUES ($1, $2, $3, $4, $5) RETURNING id
+`
+
+type CreateProjectPaymentParams struct {
+	ProjectID  string
+	ReceivedOn time.Time
+	Amount     money.Amount
+	Note       string
+	InvoiceID  *string
+}
+
+func (q *Queries) CreateProjectPayment(ctx context.Context, arg CreateProjectPaymentParams) (string, error) {
+	row := q.db.QueryRow(ctx, createProjectPayment,
+		arg.ProjectID,
+		arg.ReceivedOn,
+		arg.Amount,
+		arg.Note,
+		arg.InvoiceID,
 	)
 	var id string
 	err := row.Scan(&id)
@@ -125,6 +162,23 @@ DELETE FROM projects WHERE id = $1
 func (q *Queries) DeleteProject(ctx context.Context, id string) error {
 	_, err := q.db.Exec(ctx, deleteProject, id)
 	return err
+}
+
+const deleteProjectPayment = `-- name: DeleteProjectPayment :execrows
+DELETE FROM project_payments WHERE id = $1 AND project_id = $2
+`
+
+type DeleteProjectPaymentParams struct {
+	ID        string
+	ProjectID string
+}
+
+func (q *Queries) DeleteProjectPayment(ctx context.Context, arg DeleteProjectPaymentParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteProjectPayment, arg.ID, arg.ProjectID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const failScreenshot = `-- name: FailScreenshot :execrows
@@ -147,18 +201,22 @@ func (q *Queries) FailScreenshot(ctx context.Context, arg FailScreenshotParams) 
 }
 
 const getProject = `-- name: GetProject :one
-SELECT p.id, p.client_id, p.name, p.url, p.brief, p.created_at, p.updated_at, c.name AS client_name FROM projects p LEFT JOIN clients c ON c.id = p.client_id WHERE p.id = $1
+SELECT p.id, p.client_id, p.name, p.url, p.brief, p.created_at, p.updated_at, p.currency, p.project_value, p.project_cost, p.billing_date, c.name AS client_name FROM projects p LEFT JOIN clients c ON c.id = p.client_id WHERE p.id = $1
 `
 
 type GetProjectRow struct {
-	ID         string
-	ClientID   *string
-	Name       string
-	Url        *string
-	Brief      string
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-	ClientName *string
+	ID           string
+	ClientID     *string
+	Name         string
+	Url          *string
+	Brief        string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	Currency     string
+	ProjectValue money.NullAmount
+	ProjectCost  money.NullAmount
+	BillingDate  *time.Time
+	ClientName   *string
 }
 
 func (q *Queries) GetProject(ctx context.Context, id string) (GetProjectRow, error) {
@@ -172,6 +230,10 @@ func (q *Queries) GetProject(ctx context.Context, id string) (GetProjectRow, err
 		&i.Brief,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Currency,
+		&i.ProjectValue,
+		&i.ProjectCost,
+		&i.BillingDate,
 		&i.ClientName,
 	)
 	return i, err
@@ -195,6 +257,30 @@ func (q *Queries) GetProjectScreenshot(ctx context.Context, projectID string) (P
 		&i.RequestedAt,
 	)
 	return i, err
+}
+
+const listInvoiceProjectPayments = `-- name: ListInvoiceProjectPayments :many
+SELECT project_id FROM project_payments WHERE invoice_id = $1
+`
+
+func (q *Queries) ListInvoiceProjectPayments(ctx context.Context, invoiceID *string) ([]string, error) {
+	rows, err := q.db.Query(ctx, listInvoiceProjectPayments, invoiceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var project_id string
+		if err := rows.Scan(&project_id); err != nil {
+			return nil, err
+		}
+		items = append(items, project_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listProjectAssets = `-- name: ListProjectAssets :many
@@ -244,10 +330,60 @@ func (q *Queries) ListProjectAssets(ctx context.Context, projectID string) ([]Li
 	return items, nil
 }
 
+const listProjectPayments = `-- name: ListProjectPayments :many
+SELECT pp.id, pp.project_id, pp.received_on, pp.amount, pp.note, pp.invoice_id, pp.created_at, i.number AS invoice_number
+FROM project_payments pp
+LEFT JOIN invoices i ON i.id = pp.invoice_id
+WHERE pp.project_id = $1
+ORDER BY pp.received_on, pp.created_at
+`
+
+type ListProjectPaymentsRow struct {
+	ID            string
+	ProjectID     string
+	ReceivedOn    time.Time
+	Amount        money.Amount
+	Note          string
+	InvoiceID     *string
+	CreatedAt     time.Time
+	InvoiceNumber *string
+}
+
+func (q *Queries) ListProjectPayments(ctx context.Context, projectID string) ([]ListProjectPaymentsRow, error) {
+	rows, err := q.db.Query(ctx, listProjectPayments, projectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListProjectPaymentsRow{}
+	for rows.Next() {
+		var i ListProjectPaymentsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ProjectID,
+			&i.ReceivedOn,
+			&i.Amount,
+			&i.Note,
+			&i.InvoiceID,
+			&i.CreatedAt,
+			&i.InvoiceNumber,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listProjects = `-- name: ListProjects :many
 SELECT p.id, p.name, p.url, p.client_id, c.name AS client_name, p.updated_at,
   s.status AS screenshot_status, s.stored_path AS screenshot_path, s.captured_at AS screenshot_captured_at,
-  (SELECT count(*) FROM project_assets pa WHERE pa.project_id = p.id)::bigint AS asset_count
+  (SELECT count(*) FROM project_assets pa WHERE pa.project_id = p.id)::bigint AS asset_count,
+  p.currency, p.project_value, p.project_cost, p.billing_date,
+  (SELECT COALESCE(sum(pp.amount), 0) FROM project_payments pp WHERE pp.project_id = p.id)::numeric(15,2) AS received
 FROM projects p
 LEFT JOIN clients c ON c.id = p.client_id
 LEFT JOIN project_screenshots s ON s.project_id = p.id
@@ -265,6 +401,11 @@ type ListProjectsRow struct {
 	ScreenshotPath       *string
 	ScreenshotCapturedAt *time.Time
 	AssetCount           int64
+	Currency             string
+	ProjectValue         money.NullAmount
+	ProjectCost          money.NullAmount
+	BillingDate          *time.Time
+	Received             money.Amount
 }
 
 func (q *Queries) ListProjects(ctx context.Context) ([]ListProjectsRow, error) {
@@ -287,6 +428,11 @@ func (q *Queries) ListProjects(ctx context.Context) ([]ListProjectsRow, error) {
 			&i.ScreenshotPath,
 			&i.ScreenshotCapturedAt,
 			&i.AssetCount,
+			&i.Currency,
+			&i.ProjectValue,
+			&i.ProjectCost,
+			&i.BillingDate,
+			&i.Received,
 		); err != nil {
 			return nil, err
 		}
@@ -339,6 +485,52 @@ func (q *Queries) ListProjectsByAsset(ctx context.Context, assetID string) ([]Li
 	return items, nil
 }
 
+const listProjectsByClientWithMoney = `-- name: ListProjectsByClientWithMoney :many
+SELECT p.id, p.name, p.currency, p.project_value, p.project_cost, p.billing_date,
+  (SELECT COALESCE(sum(pp.amount), 0) FROM project_payments pp WHERE pp.project_id = p.id)::numeric(15,2) AS received
+FROM projects p
+WHERE p.client_id = $1
+ORDER BY lower(p.name)
+`
+
+type ListProjectsByClientWithMoneyRow struct {
+	ID           string
+	Name         string
+	Currency     string
+	ProjectValue money.NullAmount
+	ProjectCost  money.NullAmount
+	BillingDate  *time.Time
+	Received     money.Amount
+}
+
+func (q *Queries) ListProjectsByClientWithMoney(ctx context.Context, clientID *string) ([]ListProjectsByClientWithMoneyRow, error) {
+	rows, err := q.db.Query(ctx, listProjectsByClientWithMoney, clientID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListProjectsByClientWithMoneyRow{}
+	for rows.Next() {
+		var i ListProjectsByClientWithMoneyRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Currency,
+			&i.ProjectValue,
+			&i.ProjectCost,
+			&i.BillingDate,
+			&i.Received,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listScreenshotPathsByProject = `-- name: ListScreenshotPathsByProject :many
 SELECT stored_path FROM project_screenshots WHERE project_id = $1 AND stored_path IS NOT NULL
 `
@@ -363,6 +555,46 @@ func (q *Queries) ListScreenshotPathsByProject(ctx context.Context, projectID st
 	return items, nil
 }
 
+const lockProject = `-- name: LockProject :one
+SELECT id, client_id, currency, project_value FROM projects WHERE id = $1 FOR UPDATE
+`
+
+type LockProjectRow struct {
+	ID           string
+	ClientID     *string
+	Currency     string
+	ProjectValue money.NullAmount
+}
+
+func (q *Queries) LockProject(ctx context.Context, id string) (LockProjectRow, error) {
+	row := q.db.QueryRow(ctx, lockProject, id)
+	var i LockProjectRow
+	err := row.Scan(
+		&i.ID,
+		&i.ClientID,
+		&i.Currency,
+		&i.ProjectValue,
+	)
+	return i, err
+}
+
+const projectReceived = `-- name: ProjectReceived :one
+SELECT COALESCE(sum(amount), 0)::numeric(15,2) AS received, count(*)::bigint AS payments
+FROM project_payments WHERE project_id = $1
+`
+
+type ProjectReceivedRow struct {
+	Received money.Amount
+	Payments int64
+}
+
+func (q *Queries) ProjectReceived(ctx context.Context, projectID string) (ProjectReceivedRow, error) {
+	row := q.db.QueryRow(ctx, projectReceived, projectID)
+	var i ProjectReceivedRow
+	err := row.Scan(&i.Received, &i.Payments)
+	return i, err
+}
+
 const requestProjectScreenshot = `-- name: RequestProjectScreenshot :exec
 INSERT INTO project_screenshots (project_id, status, requested_url, attempts, requested_at, error)
 VALUES ($1, 'pending', $2, 0, $3::timestamptz, NULL)
@@ -382,15 +614,21 @@ func (q *Queries) RequestProjectScreenshot(ctx context.Context, arg RequestProje
 }
 
 const updateProject = `-- name: UpdateProject :exec
-UPDATE projects SET client_id = $2, name = $3, url = $4, brief = $5, updated_at = now() WHERE id = $1
+UPDATE projects SET client_id = $2, name = $3, url = $4, brief = $5, currency = $6, project_value = $7,
+  project_cost = $8, billing_date = $9, updated_at = now()
+WHERE id = $1
 `
 
 type UpdateProjectParams struct {
-	ID       string
-	ClientID *string
-	Name     string
-	Url      *string
-	Brief    string
+	ID           string
+	ClientID     *string
+	Name         string
+	Url          *string
+	Brief        string
+	Currency     string
+	ProjectValue money.NullAmount
+	ProjectCost  money.NullAmount
+	BillingDate  *time.Time
 }
 
 func (q *Queries) UpdateProject(ctx context.Context, arg UpdateProjectParams) error {
@@ -400,6 +638,10 @@ func (q *Queries) UpdateProject(ctx context.Context, arg UpdateProjectParams) er
 		arg.Name,
 		arg.Url,
 		arg.Brief,
+		arg.Currency,
+		arg.ProjectValue,
+		arg.ProjectCost,
+		arg.BillingDate,
 	)
 	return err
 }
