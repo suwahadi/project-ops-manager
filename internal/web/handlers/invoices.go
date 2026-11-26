@@ -98,22 +98,27 @@ func (a *App) renderInvoiceForm(w http.ResponseWriter, r *http.Request, status i
 	a.render(w, r, status, "invoice_form", title, "invoices", d)
 }
 
+func renewalDue(status asset.Status) bool {
+	return status == asset.StatusExpiringSoon || status == asset.StatusExpired
+}
+
 func renewalSource(d asset.Detail) invoice.RenewalSource {
 	return invoice.RenewalSource{
-		Name: d.Name, TypeName: d.TypeName, Expiration: d.ExpirationDate, Months: int(d.RenewalPeriodMonths),
-		Cost: d.CostPrice, Selling: d.SellingPrice, Currency: money.Currency(d.Currency),
+		Name: d.Name, TypeName: d.TypeName, OrderDate: d.OrderDate, Expiration: d.ExpirationDate, Due: renewalDue(d.Status),
+		Months: int(d.RenewalPeriodMonths), Cost: d.CostPrice, Selling: d.SellingPrice, Currency: money.Currency(d.Currency),
 	}
 }
 
-func (a *App) clientInvoiceItems(ctx context.Context, clientID string, preferred money.Currency) (money.Currency, []invoice.ItemForm, error) {
+func (a *App) clientInvoiceItems(ctx context.Context, clientID string, preferred money.Currency, today time.Time) (money.Currency, []invoice.ItemForm, error) {
 	rows, err := a.Clients.Assets(ctx, clientID)
 	if err != nil {
 		return preferred, nil, err
 	}
 	sources := make([]invoice.RenewalSource, len(rows))
 	for i, r := range rows {
+		status := asset.ComputeStatus(r.CancelledAt != nil, r.ExpirationDate, today, r.ReminderOffsets)
 		sources[i] = invoice.RenewalSource{
-			Name: r.Name, TypeName: r.TypeName, Expiration: r.ExpirationDate, Months: int(r.RenewalPeriodMonths),
+			Name: r.Name, TypeName: r.TypeName, OrderDate: r.OrderDate, Expiration: r.ExpirationDate, Due: renewalDue(status), Months: int(r.RenewalPeriodMonths),
 			Cost: r.CostPrice, Selling: r.SellingPrice, Currency: money.Currency(r.Currency), Cancelled: r.CancelledAt != nil,
 		}
 	}
@@ -188,7 +193,7 @@ func (a *App) InvoiceNew(w http.ResponseWriter, r *http.Request) {
 		if c, err := a.Clients.Get(ctx, id); err == nil {
 			f.ClientID = c.ID
 			f.BillTo = c.Name
-			cur, items, err := a.clientInvoiceItems(ctx, c.ID, all.General.DefaultCurrency)
+			cur, items, err := a.clientInvoiceItems(ctx, c.ID, all.General.DefaultCurrency, today)
 			if err != nil {
 				a.serverError(w, r, err)
 				return

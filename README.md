@@ -416,6 +416,7 @@ docker run --rm -v opsmanager_uploads:/data -v /var/backups/opsmanager:/backup d
   - Each row has a bold item title, a multi-line description, quantity, rate and tax %. Totals are recalculated on the server when you save.
   - **Mark paid** asks for the payment date, adds a green PAID ribbon and sets Amount Due to zero. **Mark unpaid** reverses it.
   - **Download PDF** prints an A4 PDF through the Chromium container and names it after the invoice number. If Chromium is down, the page shows an error instead.
+  - Asset rows bill the next term ("Renew …") when the asset is Expiring Soon or Expired, and otherwise the current term from the order date to the expiration date. Fill in the order date for new purchases so the period is exact.
   - Invoices are not included in the Finance page totals; record project payments instead (below).
 - **Project pricing** (client projects only):
   - Set the currency, project value, project cost and an optional billing date on the project form.

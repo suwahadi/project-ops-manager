@@ -24,7 +24,7 @@
     {{if not $d.Assets}}<p class="section-desc">No linked assets. <a href="/projects/{{$p.ID}}/edit" class="text-indigo-700 underline dark:text-indigo-300">Link assets</a></p>{{else}}
     <ul class="divide-y divide-slate-100 dark:divide-slate-800">
       {{range $d.Assets}}
-      <li><a href="/assets/{{.ID}}" class="block space-y-2 py-3 first:pt-0 last:pb-0 hover:opacity-80">
+      <li class="py-3 first:pt-0 last:pb-0"><a href="/assets/{{.ID}}" class="block space-y-2 hover:opacity-80">
         <div class="flex items-center justify-between gap-2"><span class="font-medium">{{.Name}}</span>{{template "status_badge" .Status}}</div>
         <div class="badge-row text-sm">{{template "type_badge" (dict "Name" .TypeName "Icon" .TypeIcon)}}<span class="text-slate-500 dark:text-slate-400">{{date .ExpirationDate}}</span>{{template "countdown_badge" .}}</div>
       </a></li>

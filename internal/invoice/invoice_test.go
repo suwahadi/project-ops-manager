@@ -162,12 +162,26 @@ func TestFilter(t *testing.T) {
 
 func TestRenewalItems(t *testing.T) {
 	exp := time.Date(2026, 11, 28, 0, 0, 0, 0, time.UTC)
-	item := RenewalItem(RenewalSource{Name: "rl-indo.com", TypeName: "Domain", Expiration: exp, Months: 12, Cost: amt("150000"), Selling: money.Some(amt("277500")), Currency: money.IDR})
+	item := RenewalItem(RenewalSource{Name: "rl-indo.com", TypeName: "Domain", Expiration: exp, Due: true, Months: 12, Cost: amt("150000"), Selling: money.Some(amt("277500")), Currency: money.IDR})
 	if item.Title != "Renew rl-indo.com" || item.Description != "Domain rl-indo.com – 1 year (28 Nov 2026 – 27 Nov 2027)" || item.Rate != "277500" || item.Quantity != "1" {
 		t.Fatalf("item: %+v", item)
 	}
 	if RenewalItem(RenewalSource{Name: "x", Expiration: exp, Months: 3, Cost: amt("12.50")}).Rate != "12.5" {
 		t.Fatal("cost fallback")
+	}
+	order := time.Date(2026, 11, 26, 0, 0, 0, 0, time.UTC)
+	vpsExp := time.Date(2027, 11, 27, 0, 0, 0, 0, time.UTC)
+	fresh := RenewalItem(RenewalSource{Name: "VPS", TypeName: "VPS", OrderDate: &order, Expiration: vpsExp, Months: 12, Cost: amt("1")})
+	if fresh.Title != "VPS" || fresh.Description != "VPS VPS – 1 year (26 Nov 2026 – 27 Nov 2027)" {
+		t.Fatalf("new asset bills its current term: %+v", fresh)
+	}
+	noOrder := RenewalItem(RenewalSource{Name: "VPS", TypeName: "VPS", Expiration: vpsExp, Months: 12, Cost: amt("1")})
+	if noOrder.Description != "VPS VPS – 1 year (27 Nov 2026 – 27 Nov 2027)" {
+		t.Fatalf("term without order date: %+v", noOrder)
+	}
+	oldOrder := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	if got := RenewalItem(RenewalSource{Name: "VPS", TypeName: "VPS", OrderDate: &oldOrder, Expiration: vpsExp, Months: 12, Cost: amt("1")}); got.Description != noOrder.Description {
+		t.Fatalf("an order date from an earlier term is ignored: %+v", got)
 	}
 	for months, want := range map[int]string{1: "1 month", 6: "6 months", 12: "1 year", 24: "2 years"} {
 		if got := RenewalPeriod(months); got != want {
@@ -175,10 +189,10 @@ func TestRenewalItems(t *testing.T) {
 		}
 	}
 	sources := []RenewalSource{
-		{Name: "a.com", Expiration: exp, Months: 12, Cost: amt("1"), Currency: money.IDR},
-		{Name: "vps", Expiration: exp, Months: 1, Cost: amt("5"), Currency: money.USD},
+		{Name: "a.com", Expiration: exp, Due: true, Months: 12, Cost: amt("1"), Currency: money.IDR},
+		{Name: "vps", Expiration: exp, Due: true, Months: 1, Cost: amt("5"), Currency: money.USD},
 		{Name: "old.com", Expiration: exp, Months: 12, Cost: amt("1"), Currency: money.IDR, Cancelled: true},
-		{Name: "b.com", Expiration: exp, Months: 12, Cost: amt("2"), Currency: money.IDR},
+		{Name: "b.com", Expiration: exp, Due: true, Months: 12, Cost: amt("2"), Currency: money.IDR},
 	}
 	cur, items := ClientItems(sources, nil, money.USD)
 	if cur != money.IDR || len(items) != 2 || items[0].Title != "Renew a.com" || items[1].Title != "Renew b.com" {
@@ -196,7 +210,7 @@ func TestRenewalItems(t *testing.T) {
 
 func TestClientItemsWithProjects(t *testing.T) {
 	exp := time.Date(2026, 11, 28, 0, 0, 0, 0, time.UTC)
-	assets := []RenewalSource{{Name: "vps", Expiration: exp, Months: 1, Cost: amt("5"), Currency: money.USD}}
+	assets := []RenewalSource{{Name: "vps", Expiration: exp, Due: true, Months: 1, Cost: amt("5"), Currency: money.USD}}
 	projects := []ProjectSource{
 		{ID: "p1", Name: "Website", Currency: money.IDR, Value: amt("10000000"), Remaining: amt("5000000")},
 		{ID: "p2", Name: "App", Currency: money.IDR, Value: amt("3000000"), Remaining: amt("3000000")},

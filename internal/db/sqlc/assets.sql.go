@@ -213,7 +213,7 @@ func (q *Queries) ListAssetOptions(ctx context.Context) ([]ListAssetOptionsRow, 
 }
 
 const listAssets = `-- name: ListAssets :many
-SELECT a.id, a.name, a.expiration_date, a.cancelled_at, a.currency, a.cost_price, a.selling_price,
+SELECT a.id, a.name, a.order_date, a.expiration_date, a.cancelled_at, a.currency, a.cost_price, a.selling_price,
   a.renewal_period_months, a.client_id, a.asset_type_id, a.provider_id,
   t.name AS type_name, t.icon AS type_icon, t.reminder_offsets,
   p.name AS provider_name, c.name AS client_name
@@ -255,6 +255,7 @@ type ListAssetsParams struct {
 type ListAssetsRow struct {
 	ID                  string
 	Name                string
+	OrderDate           *time.Time
 	ExpirationDate      time.Time
 	CancelledAt         *time.Time
 	Currency            string
@@ -292,6 +293,7 @@ func (q *Queries) ListAssets(ctx context.Context, arg ListAssetsParams) ([]ListA
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
+			&i.OrderDate,
 			&i.ExpirationDate,
 			&i.CancelledAt,
 			&i.Currency,
@@ -318,7 +320,7 @@ func (q *Queries) ListAssets(ctx context.Context, arg ListAssetsParams) ([]ListA
 }
 
 const listAssetsByClient = `-- name: ListAssetsByClient :many
-SELECT a.id, a.name, a.expiration_date, a.cancelled_at, a.currency, a.cost_price, a.selling_price,
+SELECT a.id, a.name, a.order_date, a.expiration_date, a.cancelled_at, a.currency, a.cost_price, a.selling_price,
   a.renewal_period_months, t.name AS type_name, t.icon AS type_icon, t.reminder_offsets
 FROM assets a JOIN asset_types t ON t.id = a.asset_type_id
 WHERE a.client_id = $1
@@ -328,6 +330,7 @@ ORDER BY a.expiration_date, lower(a.name)
 type ListAssetsByClientRow struct {
 	ID                  string
 	Name                string
+	OrderDate           *time.Time
 	ExpirationDate      time.Time
 	CancelledAt         *time.Time
 	Currency            string
@@ -351,6 +354,7 @@ func (q *Queries) ListAssetsByClient(ctx context.Context, clientID *string) ([]L
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
+			&i.OrderDate,
 			&i.ExpirationDate,
 			&i.CancelledAt,
 			&i.Currency,

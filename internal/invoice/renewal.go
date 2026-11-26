@@ -10,7 +10,9 @@ import (
 type RenewalSource struct {
 	Name       string
 	TypeName   string
+	OrderDate  *time.Time
 	Expiration time.Time
+	Due        bool
 	Months     int
 	Cost       money.Amount
 	Selling    money.NullAmount
@@ -31,18 +33,27 @@ func RenewalPeriod(months int) string {
 }
 
 func RenewalItem(src RenewalSource) ItemForm {
-	end := src.Expiration.AddDate(0, src.Months, -1)
 	rate := src.Cost
 	if src.Selling.Valid {
 		rate = src.Selling.Amount
 	}
-	return ItemForm{
-		Title:       "Renew " + src.Name,
-		Description: src.TypeName + " " + src.Name + " – " + RenewalPeriod(src.Months) + " (" + src.Expiration.Format("02 Jan 2006") + " – " + end.Format("02 Jan 2006") + ")",
-		Quantity:    "1",
-		Rate:        FormatDecimal(rate),
-		Tax:         "0",
+	item := ItemForm{Quantity: "1", Rate: FormatDecimal(rate), Tax: "0"}
+	start, end := src.CurrentTerm()
+	item.Title = src.Name
+	if src.Due {
+		start, end = src.Expiration, src.Expiration.AddDate(0, src.Months, -1)
+		item.Title = "Renew " + src.Name
 	}
+	item.Description = src.TypeName + " " + src.Name + " – " + RenewalPeriod(src.Months) + " (" + start.Format("02 Jan 2006") + " – " + end.Format("02 Jan 2006") + ")"
+	return item
+}
+
+func (src RenewalSource) CurrentTerm() (time.Time, time.Time) {
+	start := src.Expiration.AddDate(0, -src.Months, 0)
+	if src.OrderDate != nil && src.OrderDate.Before(src.Expiration) && !src.OrderDate.Before(start.AddDate(0, -1, 0)) {
+		start = *src.OrderDate
+	}
+	return start, src.Expiration
 }
 
 type ProjectSource struct {
